@@ -219,6 +219,7 @@
 
   <div class="section-label">Secciones (PC)</div>
   <a href="#dashboard">📊 Dashboard</a>
+  <a href="#vencimientos">⚠️ Próximos vencimientos</a>
   <a href="#combustible">⛽ Combustible</a>
   <a href="#mantenimientos">🔧 Mantenimientos</a>
   <a href="#componentes">🛞 Neumáticos / Batería</a>
@@ -301,6 +302,24 @@
       <li>Últimas 5 cargas, próximos mantenimientos y estado de neumáticos/batería</li>
       <li>Alertas activas (mantenimiento vencido o componente por cambiar) arriba de todo</li>
     </ul>
+  </div>
+
+  <div class="section" id="vencimientos">
+    <div class="section-header">
+      <div class="section-icon">⚠️</div>
+      <div>
+        <div class="section-title">Próximos vencimientos</div>
+        <div class="section-subtitle">El modal que aparece al abrir la app</div>
+      </div>
+    </div>
+    <p>Al abrir la app en PC (o al entrar a "Ver app completa" desde el celular), si hay algo próximo a vencer aparece automáticamente un modal con el resumen — no hace falta ir a buscarlo módulo por módulo.</p>
+    <p>Incluye dos tipos de aviso:</p>
+    <ul>
+      <li><b>Mantenimientos programados</b> que estén a 500 km o menos del próximo service (o ya vencidos)</li>
+      <li><b>Componentes</b> (neumáticos/batería) que lleguen al 80% o más de su vida útil, por km o por tiempo</li>
+    </ul>
+    <p>Cada ítem tiene un botón de acción directa (Registrar / Reemplazar) para resolverlo ahí mismo, sin tener que navegar al módulo correspondiente. Si no hay nada próximo a vencer, el modal simplemente no aparece.</p>
+    <div class="info">Esto es distinto de las <b>alertas</b> que se disparan al cargar combustible (esas avisan recién cuando ya se cumplió el km o el 90%). El modal de vencimientos es una vista previa más temprana, pensada para anticiparse en vez de enterarte justo cuando ya tocaba.</div>
   </div>
 
   <div class="section" id="combustible">
