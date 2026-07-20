@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.20';
+const VERSION = 'v0.21';
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
 const CATEGORIAS_GASTO_VAR = ['Multas','Peajes','Estacionamiento','Reparación no programada','Otro'];
@@ -424,7 +424,7 @@ function registrarMantenimientoRealizado(datos){
     nombreLibre: datos.nombreLibre || '', // solo se usa cuando no hay mantenimientoProgramadoId (mantenimiento a demanda)
     vehiculoId: datos.vehiculoId,
     kilometraje_realizado: Number(datos.kilometraje_realizado),
-    fecha: hoyISO(),
+    fecha: datos.fecha || hoyISO(),
     notas: datos.notas || '',
     costo: Number(datos.costo)||0
   });
@@ -1013,7 +1013,7 @@ function renderHistorialMantenimientos(vehiculoId){
         <td class="mono">${fmtFecha(r.fecha)}</td>
         <td>${nombre}</td>
         <td>${fmtKm(r.kilometraje_realizado)}</td>
-        <td>${r.costo?fmtMoney(r.costo):'—'}</td>
+        <td>${fmtMoney(r.costo)}</td>
         <td class="text2">${escHtml(r.notas)}</td>
         <td><button class="btn btn-sm btn-d" onclick="eliminarMantenimientoRealizado('${r.uuid}')">✕</button></td>
       </tr>`;
@@ -1057,8 +1057,11 @@ function modalRegistrarMantenimiento(mantenimientoProgramadoId){
   const prog = DB.mantenimientosProgramados.find(p=>p.uuid===mantenimientoProgramadoId);
   const kmSugerido = kmActualVehiculo(v.uuid);
   abrirModal(`✓ Registrar: ${escHtml(prog.nombre_servicio)}`, `
-    <div class="fg"><label>Kilometraje</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
-    <div class="fg"><label>Costo (opcional)</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+    <div class="fgrid">
+      <div class="fg"><label>Kilometraje</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
+      <div class="fg"><label>Fecha de realización</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
     <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional"></textarea></div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
@@ -1068,10 +1071,13 @@ function modalRegistrarMantenimiento(mantenimientoProgramadoId){
 function guardarMantenimientoRealizado(mantenimientoProgramadoId){
   const v = vehiculoActivo();
   const kilometraje_realizado = Number(document.getElementById('f-km').value);
-  const costo = Number(document.getElementById('f-costo').value)||0;
+  const costoRaw = document.getElementById('f-costo').value;
+  const fecha = new Date(document.getElementById('f-fecha').value).toISOString();
   const notas = document.getElementById('f-notas').value.trim();
   if(!kilometraje_realizado){ alert('Ingresá el kilometraje.'); return; }
-  registrarMantenimientoRealizado({ mantenimientoProgramadoId, vehiculoId: v.uuid, kilometraje_realizado, costo, notas });
+  if(costoRaw === ''){ alert('Ingresá el costo del servicio (poné 0 si fue sin cargo).'); return; }
+  const costo = Number(costoRaw);
+  registrarMantenimientoRealizado({ mantenimientoProgramadoId, vehiculoId: v.uuid, kilometraje_realizado, costo, fecha, notas });
   cerrarModal(); goTo('mantenimientos');
 }
 
@@ -1092,8 +1098,9 @@ function modalMantenimientoADemanda(){
     </div>
     <div class="fgrid">
       <div class="fg"><label>Kilometraje</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
-      <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+      <div class="fg"><label>Fecha de realización</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
     </div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
     <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional"></textarea></div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
@@ -1105,11 +1112,14 @@ function guardarMantenimientoADemanda(){
   const v = vehiculoActivo();
   const nombreLibre = document.getElementById('f-nombreLibre').value.trim();
   const kilometraje_realizado = Number(document.getElementById('f-km').value);
-  const costo = Number(document.getElementById('f-costo').value)||0;
+  const costoRaw = document.getElementById('f-costo').value;
+  const fecha = new Date(document.getElementById('f-fecha').value).toISOString();
   const notas = document.getElementById('f-notas').value.trim();
   if(!nombreLibre){ alert('Ingresá qué servicio se realizó.'); return; }
   if(!kilometraje_realizado){ alert('Ingresá el kilometraje.'); return; }
-  registrarMantenimientoRealizado({ mantenimientoProgramadoId: null, nombreLibre, vehiculoId: v.uuid, kilometraje_realizado, costo, notas });
+  if(costoRaw === ''){ alert('Ingresá el costo del servicio (poné 0 si fue sin cargo).'); return; }
+  const costo = Number(costoRaw);
+  registrarMantenimientoRealizado({ mantenimientoProgramadoId: null, nombreLibre, vehiculoId: v.uuid, kilometraje_realizado, costo, fecha, notas });
   cerrarModal(); goTo('mantenimientos');
 }
 
