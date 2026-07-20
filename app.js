@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.17';
+const VERSION = 'v0.18';
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
 const CATEGORIAS_GASTO_VAR = ['Multas','Peajes','Estacionamiento','Reparación no programada','Otro'];
@@ -205,6 +205,33 @@ async function cvSincronizarDrive(){
     console.error(e);
     alert('⚠️ Error al sincronizar: '+e.message);
   }
+}
+
+// Borra TODOS los datos (local + Drive si está conectado). Doble confirmación
+// porque es irreversible más allá del último snapshot que se guarda antes.
+async function cvBorrarTodo(){
+  if(!confirm('¿Seguro que querés borrar TODOS los datos (vehículos, cargas, mantenimientos, componentes, gastos)? Esta acción no se puede deshacer.')) return;
+  const escrito = prompt('Para confirmar, escribí BORRAR (en mayúsculas):');
+  if(escrito !== 'BORRAR'){ alert('Cancelado. No se borró nada.'); return; }
+
+  // Último salvavidas: snapshot antes de borrar
+  cvHacerSnapshot(true);
+
+  DB = {
+    nid: 1,
+    vehiculos: [], cargas: [], mantenimientosProgramados: [], mantenimientosRealizados: [],
+    componentes: [], gastosFijos: [], gastosVariables: [], alertas: [],
+    config: { vehiculoActivo: null }
+  };
+  save();
+
+  if(typeof DriveSync !== 'undefined' && DriveSync.conectado){
+    try{ await DriveSync.subirBackup(DB); }
+    catch(e){ console.error('No se pudo limpiar el backup en Drive:', e); }
+  }
+
+  alert('✅ Listo. Todos los datos fueron borrados (queda un último snapshot por si te arrepentís).');
+  goTo('vehiculos');
 }
 
 // ── HELPERS DE FORMATO ───────────────────────────────────────────────────────
@@ -1446,6 +1473,13 @@ function renderBackup(){
             </span>
           </div>`).join('')}
         </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:rgba(248,81,73,.35)">
+      <div class="ch"><div class="ct red">⚠️ Zona de riesgo</div></div>
+      <div class="card-body">
+        <p class="text2" style="margin-bottom:10px;font-size:12px">Borra TODOS los vehículos, cargas, mantenimientos, componentes y gastos — local y en Drive si está conectado. Se guarda un último snapshot antes, por si te arrepentís. No se puede deshacer más allá de eso.</p>
+        <button class="btn btn-d" onclick="cvBorrarTodo()">🗑️ Borrar todos los datos</button>
       </div>
     </div>
   `;
