@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.21';
+const VERSION = 'v0.22';
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
 const CATEGORIAS_GASTO_VAR = ['Multas','Peajes','Estacionamiento','Reparación no programada','Otro'];
@@ -505,6 +505,7 @@ function crearComponente(datos){
     fecha_instalacion: datos.fecha_instalacion || hoyISO(),
     costo: Number(datos.costo)||0,
     vida_util_estimada_km: Number(datos.vida_util_estimada_km)||0,
+    vida_util_meses: Number(datos.vida_util_meses)||0,
     km_reemplazo: null,
     fecha_reemplazo: null,
     activo: true
@@ -514,15 +515,30 @@ function crearComponente(datos){
   return c;
 }
 
+function sumarMeses(fechaISO, meses){
+  const d = new Date(fechaISO);
+  d.setMonth(d.getMonth() + meses);
+  return d;
+}
+// Meses transcurridos como número fraccionario (no entero), para calcular
+// porcentajes de vida útil con precisión — usado por componentes que se
+// vencen por tiempo (ej: batería) en vez de por kilometraje.
+function mesesTranscurridosDesde(fechaISO, hastaISO){
+  const dias = (new Date(hastaISO) - new Date(fechaISO)) / 86400000;
+  return dias / 30.44;
+}
+
 function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDatos){
   const anterior = DB.componentes.find(c=>c.uuid===componenteAnteriorId);
   if(!anterior) return null;
+  const fechaReemplazo = hoyISO();
   anterior.km_reemplazo = kmActual;
-  anterior.fecha_reemplazo = hoyISO();
+  anterior.fecha_reemplazo = fechaReemplazo;
   anterior.activo = false;
   tocar(anterior);
 
   const vidaUtilReal = kmActual - anterior.km_instalacion;
+  const vidaUtilRealMeses = mesesTranscurridosDesde(anterior.fecha_instalacion, fechaReemplazo);
   const nuevo = crearComponente({
     ...nuevoComponenteDatos,
     vehiculoId: anterior.vehiculoId,
@@ -530,7 +546,12 @@ function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDat
     fecha_instalacion: hoyISO()
   });
   save();
-  return { vidaUtilReal, diferenciaVsEstimada: vidaUtilReal - anterior.vida_util_estimada_km, nuevo };
+  return {
+    vidaUtilReal, vidaUtilRealMeses,
+    diferenciaVsEstimada: anterior.vida_util_estimada_km ? vidaUtilReal - anterior.vida_util_estimada_km : null,
+    diferenciaVsEstimadaMeses: anterior.vida_util_meses ? vidaUtilRealMeses - anterior.vida_util_meses : null,
+    nuevo
+  };
 }
 
 function eliminarComponente(uuid){
@@ -540,40 +561,65 @@ function eliminarComponente(uuid){
   goTo('componentes');
 }
 
+// Un componente puede vencerse por km recorridos (neumáticos), por tiempo
+// (batería, ej: 36 meses), o por ambos criterios a la vez. Se usa el que
+// esté más avanzado (el que se cumpla primero) para el % de vida útil.
 function estadoComponente(componente, kmActual){
   const kmRecorridos = kmActual - componente.km_instalacion;
-  const vidaUtil = componente.vida_util_estimada_km || 1;
-  const porcentajeUsado = Math.max(0, Math.min((kmRecorridos / vidaUtil) * 100, 100));
+  const mesesTranscurridos = mesesTranscurridosDesde(componente.fecha_instalacion, hoyISO());
+
+  const tieneKm = componente.vida_util_estimada_km > 0;
+  const tieneMeses = componente.vida_util_meses > 0;
+
+  const porcentajeKm = tieneKm ? (kmRecorridos / componente.vida_util_estimada_km) * 100 : null;
+  const porcentajeTiempo = tieneMeses ? (mesesTranscurridos / componente.vida_util_meses) * 100 : null;
+
+  let porcentajeUsado = 0, criterioLimitante = null;
+  if(porcentajeKm !== null){ porcentajeUsado = porcentajeKm; criterioLimitante = 'km'; }
+  if(porcentajeTiempo !== null && (criterioLimitante === null || porcentajeTiempo > porcentajeUsado)){
+    porcentajeUsado = porcentajeTiempo; criterioLimitante = 'tiempo';
+  }
+  porcentajeUsado = Math.max(0, Math.min(porcentajeUsado, 100));
+
   return {
-    kmRecorridos,
-    kmRestanteEstimado: componente.vida_util_estimada_km - kmRecorridos,
-    porcentajeUsado,
-    proximoCambioEstimadoKm: componente.km_instalacion + componente.vida_util_estimada_km
+    kmRecorridos, mesesTranscurridos, tieneKm, tieneMeses,
+    porcentajeKm, porcentajeTiempo, porcentajeUsado, criterioLimitante,
+    proximoCambioEstimadoKm: tieneKm ? componente.km_instalacion + componente.vida_util_estimada_km : null,
+    proximoCambioEstimadoFecha: tieneMeses ? sumarMeses(componente.fecha_instalacion, componente.vida_util_meses).toISOString() : null
   };
 }
 
 function historicoVidaUtilPorTipo(vehiculoId, tipo){
   return DB.componentes
     .filter(c=>c.vehiculoId===vehiculoId && c.tipo===tipo && c.km_reemplazo!==null)
-    .map(c => ({
-      descripcion: c.descripcion,
-      vidaUtilReal: c.km_reemplazo - c.km_instalacion,
-      vidaUtilEstimada: c.vida_util_estimada_km,
-      costo: c.costo,
-      costoPorKm: (c.km_reemplazo - c.km_instalacion) > 0 ? c.costo / (c.km_reemplazo - c.km_instalacion) : 0
-    }));
+    .map(c => {
+      const vidaUtilRealMeses = mesesTranscurridosDesde(c.fecha_instalacion, c.fecha_reemplazo);
+      return {
+        descripcion: c.descripcion,
+        vidaUtilReal: c.km_reemplazo - c.km_instalacion,
+        vidaUtilEstimada: c.vida_util_estimada_km,
+        vidaUtilRealMeses,
+        vidaUtilEstimadaMeses: c.vida_util_meses,
+        costo: c.costo,
+        costoPorKm: (c.km_reemplazo - c.km_instalacion) > 0 ? c.costo / (c.km_reemplazo - c.km_instalacion) : 0
+      };
+    });
 }
 
-// Cruce de km con vida útil de componentes activos. Se ejecuta al cargar combustible.
+// Cruce de km (y de tiempo transcurrido) con vida útil de componentes activos.
+// Se ejecuta al cargar combustible.
 function verificarComponentes(vehiculoId, kmActual){
   const activos = componentesVehiculo(vehiculoId, true);
   const disparadas = [];
   activos.forEach(c => {
-    if(!c.vida_util_estimada_km) return;
+    if(!c.vida_util_estimada_km && !c.vida_util_meses) return;
     const estado = estadoComponente(c, kmActual);
     if(estado.porcentajeUsado >= 90){
       const yaAlertado = DB.alertas.some(a => a.componenteId===c.uuid && !a.atendida);
       if(!yaAlertado){
+        const detalleProximo = estado.criterioLimitante === 'tiempo'
+          ? `alrededor de ${fmtFecha(estado.proximoCambioEstimadoFecha)}`
+          : `~${fmtKm(estado.proximoCambioEstimadoKm)}`;
         const alerta = tocar({
           uuid: cvNuevoUUID(),
           tipo: 'componente',
@@ -582,7 +628,7 @@ function verificarComponentes(vehiculoId, kmActual){
           kmDisparo: kmActual,
           fecha: hoyISO(),
           atendida: false,
-          mensaje: `🛞 ${c.tipo} (${c.descripcion||'sin descripción'}) al ${estado.porcentajeUsado.toFixed(0)}% de su vida útil estimada — próximo cambio ~${fmtKm(estado.proximoCambioEstimadoKm)}`
+          mensaje: `🛞 ${c.tipo} (${c.descripcion||'sin descripción'}) al ${estado.porcentajeUsado.toFixed(0)}% de su vida útil ${estado.criterioLimitante==='tiempo'?'(por tiempo)':'(por km)'} — próximo cambio ${detalleProximo}`
         });
         DB.alertas.push(alerta);
         disparadas.push(alerta);
@@ -844,13 +890,16 @@ function renderTablaComponentesActivos(vehiculoId, km){
   return activos.map(c => {
     const e = estadoComponente(c, km);
     const cls = e.porcentajeUsado>=90?'vprog-crit':(e.porcentajeUsado>=70?'vprog-warn':'vprog-ok');
+    const proximo = e.criterioLimitante === 'tiempo'
+      ? `Próximo cambio estimado: ${fmtFecha(e.proximoCambioEstimadoFecha)}`
+      : `Próximo cambio estimado: ${fmtKm(e.proximoCambioEstimadoKm)}`;
     return `<div style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
         <span>${c.tipo}${c.descripcion?' — '+escHtml(c.descripcion):''}</span>
         <span class="text2">${e.porcentajeUsado.toFixed(0)}%</span>
       </div>
       <div class="vprog"><div class="vprog-bar ${cls}" style="width:${e.porcentajeUsado}%"></div></div>
-      <div class="text3" style="font-size:11px">Próximo cambio estimado: ${fmtKm(e.proximoCambioEstimadoKm)}</div>
+      <div class="text3" style="font-size:11px">${proximo}</div>
     </div>`;
   }).join('');
 }
@@ -1138,6 +1187,12 @@ function renderComponentes(){
         ${!activos.length ? `<div class="empty">No hay componentes activos.</div>` : activos.map(c=>{
           const e = estadoComponente(c, km);
           const cls = e.porcentajeUsado>=90?'vprog-crit':(e.porcentajeUsado>=70?'vprog-warn':'vprog-ok');
+          const partesDetalle = [];
+          if(e.tieneKm) partesDetalle.push(`${fmtKm(e.kmRecorridos)} recorridos (${e.porcentajeKm.toFixed(0)}% por km)`);
+          if(e.tieneMeses) partesDetalle.push(`${e.mesesTranscurridos.toFixed(1)} meses transcurridos (${e.porcentajeTiempo.toFixed(0)}% por tiempo)`);
+          const partesProximo = [];
+          if(e.tieneKm) partesProximo.push(`~${fmtKm(e.proximoCambioEstimadoKm)}`);
+          if(e.tieneMeses) partesProximo.push(`~${fmtFecha(e.proximoCambioEstimadoFecha)}`);
           return `<div class="card" style="margin-bottom:10px">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
@@ -1151,11 +1206,8 @@ function renderComponentes(){
                 </div>
               </div>
               <div class="vprog"><div class="vprog-bar ${cls}" style="width:${e.porcentajeUsado}%"></div></div>
-              <div style="display:flex;justify-content:space-between;font-size:11px" class="text2">
-                <span>${fmtKm(e.kmRecorridos)} recorridos</span>
-                <span>${e.porcentajeUsado.toFixed(0)}% de vida útil</span>
-                <span>Próx. cambio: ${fmtKm(e.proximoCambioEstimadoKm)}</span>
-              </div>
+              <div style="font-size:11px" class="text2">${partesDetalle.join(' · ')}</div>
+              <div style="font-size:11px" class="text3">Próx. cambio: ${partesProximo.join(' o ')}${e.criterioLimitante ? ` — limita por ${e.criterioLimitante==='tiempo'?'tiempo':'km'}` : ''}</div>
             </div>
           </div>`;
         }).join('')}
@@ -1169,13 +1221,20 @@ function renderComponentes(){
         <table><thead><tr><th>Tipo</th><th>Instalado</th><th>Reemplazado</th><th>Vida útil real</th><th>Estimada</th><th>Costo</th><th>$/km</th></tr></thead><tbody>
         ${historicos.map(c=>{
           const vidaReal = c.km_reemplazo - c.km_instalacion;
+          const vidaRealMeses = mesesTranscurridosDesde(c.fecha_instalacion, c.fecha_reemplazo);
           const costoPorKm = vidaReal>0 ? c.costo/vidaReal : 0;
+          const realParts = [];
+          if(c.vida_util_estimada_km) realParts.push(fmtKm(vidaReal));
+          if(c.vida_util_meses) realParts.push(`${vidaRealMeses.toFixed(1)} m`);
+          const estParts = [];
+          if(c.vida_util_estimada_km) estParts.push(fmtKm(c.vida_util_estimada_km));
+          if(c.vida_util_meses) estParts.push(`${c.vida_util_meses} m`);
           return `<tr>
             <td>${c.tipo}${c.descripcion?' — '+escHtml(c.descripcion):''}</td>
             <td>${fmtKm(c.km_instalacion)}</td>
             <td>${fmtKm(c.km_reemplazo)}</td>
-            <td>${fmtKm(vidaReal)}</td>
-            <td>${fmtKm(c.vida_util_estimada_km)}</td>
+            <td>${realParts.join(' / ')||'—'}</td>
+            <td>${estParts.join(' / ')||'—'}</td>
             <td>${fmtMoney(c.costo)}</td>
             <td>${fmtMoney(costoPorKm)}</td>
           </tr>`;
@@ -1199,9 +1258,11 @@ function modalNuevoComponente(){
         <label style="text-transform:none;font-size:12px">Es estimado</label>
       </div>
     </div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+    <p class="text3" style="font-size:11px;margin-bottom:6px">Completá el criterio de vida útil que corresponda — por km (neumáticos), por tiempo (batería), o ambos si querés que alerte con el que se cumpla primero.</p>
     <div class="fgrid">
-      <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
-      <div class="fg"><label>Vida útil estimada (km)</label><input type="number" inputmode="numeric" id="f-vidautil" placeholder="Ej: 50000"></div>
+      <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" placeholder="Ej: 50000"></div>
+      <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" placeholder="Ej: 36"></div>
     </div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
@@ -1216,8 +1277,10 @@ function guardarNuevoComponente(){
   const km_instalacion_estimado = document.getElementById('f-estimado').checked;
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
+  const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
-  crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km });
+  if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
+  crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
 }
 function modalReemplazarComponente(uuid){
@@ -1229,9 +1292,10 @@ function modalReemplazarComponente(uuid){
     <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
       <div class="text2" style="font-size:11px;margin-bottom:8px;text-transform:uppercase;font-weight:700">Datos del componente nuevo</div>
       <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
+      <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
       <div class="fgrid">
-        <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
-        <div class="fg"><label>Vida útil estimada (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${anterior.vida_util_estimada_km||''}"></div>
+        <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${anterior.vida_util_estimada_km||''}"></div>
+        <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" value="${anterior.vida_util_meses||''}"></div>
       </div>
     </div>
   `, `
@@ -1244,12 +1308,16 @@ function guardarReemplazoComponente(uuid){
   const descripcion = document.getElementById('f-desc').value.trim();
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
+  const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
   const anterior = DB.componentes.find(c=>c.uuid===uuid);
   if(!km){ alert('Ingresá el km actual.'); return; }
-  const resultado = reemplazarComponente(uuid, km, { tipo: anterior.tipo, descripcion, costo, vida_util_estimada_km });
+  const resultado = reemplazarComponente(uuid, km, { tipo: anterior.tipo, descripcion, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
   if(resultado){
-    setTimeout(()=>alert(`✅ Reemplazado. El componente anterior duró ${fmtKm(resultado.vidaUtilReal)}.`), 100);
+    const partes = [];
+    if(resultado.vidaUtilReal) partes.push(fmtKm(resultado.vidaUtilReal));
+    partes.push(`${resultado.vidaUtilRealMeses.toFixed(1)} meses`);
+    setTimeout(()=>alert(`✅ Reemplazado. El componente anterior duró ${partes.join(' / ')}.`), 100);
   }
 }
 
