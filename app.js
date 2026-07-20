@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.23';
+const VERSION = 'v0.24';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -543,10 +543,10 @@ function mesesTranscurridosDesde(fechaISO, hastaISO){
   return dias / 30.44;
 }
 
-function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDatos){
+function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDatos, fechaReemplazoElegida){
   const anterior = DB.componentes.find(c=>c.uuid===componenteAnteriorId);
   if(!anterior) return null;
-  const fechaReemplazo = hoyISO();
+  const fechaReemplazo = fechaReemplazoElegida || hoyISO();
   anterior.km_reemplazo = kmActual;
   anterior.fecha_reemplazo = fechaReemplazo;
   anterior.activo = false;
@@ -558,7 +558,7 @@ function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDat
     ...nuevoComponenteDatos,
     vehiculoId: anterior.vehiculoId,
     km_instalacion: kmActual,
-    fecha_instalacion: hoyISO()
+    fecha_instalacion: nuevoComponenteDatos.fecha_instalacion || fechaReemplazo
   });
   save();
   return {
@@ -1268,13 +1268,14 @@ function modalNuevoComponente(){
     <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
     <div class="fgrid">
       <div class="fg"><label>Km de instalación</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
-      <div class="fg" style="flex-direction:row;align-items:center;gap:8px;margin-top:18px">
-        <input type="checkbox" id="f-estimado" style="width:16px;height:16px;accent-color:var(--primary)">
-        <label style="text-transform:none;font-size:12px">Es estimado</label>
-      </div>
+      <div class="fg"><label>Fecha de instalación</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="fg" style="flex-direction:row;align-items:center;gap:8px">
+      <input type="checkbox" id="f-estimado" style="width:16px;height:16px;accent-color:var(--primary)">
+      <label style="text-transform:none;font-size:12px">El km y/o la fecha son estimados (ya estaba puesto cuando empecé a usar la app)</label>
     </div>
     <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
-    <p class="text3" style="font-size:11px;margin-bottom:6px">Completá el criterio de vida útil que corresponda — por km (neumáticos), por tiempo (batería), o ambos si querés que alerte con el que se cumpla primero.</p>
+    <p class="text3" style="font-size:11px;margin-bottom:6px">Completá el criterio de vida útil que corresponda — por km (neumáticos), por tiempo desde la fecha de instalación (batería), o ambos si querés que alerte con el que se cumpla primero.</p>
     <div class="fgrid">
       <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" placeholder="Ej: 50000"></div>
       <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" placeholder="Ej: 36"></div>
@@ -1289,13 +1290,14 @@ function guardarNuevoComponente(){
   const tipo = document.getElementById('f-tipo').value;
   const descripcion = document.getElementById('f-desc').value.trim();
   const km_instalacion = Number(document.getElementById('f-km').value);
+  const fecha_instalacion = new Date(document.getElementById('f-fecha').value).toISOString();
   const km_instalacion_estimado = document.getElementById('f-estimado').checked;
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
   const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
-  crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
+  crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
 }
 function modalReemplazarComponente(uuid){
@@ -1303,10 +1305,14 @@ function modalReemplazarComponente(uuid){
   const anterior = DB.componentes.find(c=>c.uuid===uuid);
   const kmSugerido = kmActualVehiculo(v.uuid);
   abrirModal(`🔄 Reemplazar: ${anterior.tipo}`, `
-    <div class="fg"><label>Km actual (del reemplazo)</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
+    <div class="fgrid">
+      <div class="fg"><label>Km actual (del reemplazo)</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
+      <div class="fg"><label>Fecha del reemplazo</label><input type="date" id="f-fecha-reemplazo" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
     <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
       <div class="text2" style="font-size:11px;margin-bottom:8px;text-transform:uppercase;font-weight:700">Datos del componente nuevo</div>
       <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
+      <div class="fg"><label>Fecha de instalación (del nuevo)</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
       <div class="fgrid">
         <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${anterior.vida_util_estimada_km||''}"></div>
@@ -1320,13 +1326,15 @@ function modalReemplazarComponente(uuid){
 }
 function guardarReemplazoComponente(uuid){
   const km = Number(document.getElementById('f-km').value);
+  const fechaReemplazo = new Date(document.getElementById('f-fecha-reemplazo').value).toISOString();
   const descripcion = document.getElementById('f-desc').value.trim();
+  const fecha_instalacion = new Date(document.getElementById('f-fecha').value).toISOString();
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
   const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
   const anterior = DB.componentes.find(c=>c.uuid===uuid);
   if(!km){ alert('Ingresá el km actual.'); return; }
-  const resultado = reemplazarComponente(uuid, km, { tipo: anterior.tipo, descripcion, costo, vida_util_estimada_km, vida_util_meses });
+  const resultado = reemplazarComponente(uuid, km, { tipo: anterior.tipo, descripcion, costo, vida_util_estimada_km, vida_util_meses, fecha_instalacion }, fechaReemplazo);
   cerrarModal(); goTo('componentes');
   if(resultado){
     const partes = [];
