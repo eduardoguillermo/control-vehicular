@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.26';
+const VERSION = 'v0.27';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -1891,6 +1891,7 @@ function renderVistaRapidaMobile(){
         &nbsp;·&nbsp;
         <a onclick="window.open('./instructivo.html#mobile','_blank')" style="color:var(--primary-light);cursor:pointer">❓ Ayuda</a>
       </div>
+      <div style="text-align:center;font-size:10px;color:var(--text3);font-family:monospace;margin-top:4px">${VERSION}${DEV_MODE?' · DEV':''}</div>
     </div>
     <div class="vr-footer">
       <button onclick="cvSincronizarDrive()">🔄 Sincronizar</button>
