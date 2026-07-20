@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.19';
+const VERSION = 'v0.20';
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
 const CATEGORIAS_GASTO_VAR = ['Multas','Peajes','Estacionamiento','Reparación no programada','Otro'];
@@ -897,10 +897,10 @@ function modalNuevaCarga(){
       <div class="fg"><label>Tipo</label><select id="f-tipoCombustible">${TIPOS_COMBUSTIBLE.map(t=>`<option ${t===tipoSugerido?'selected':''}>${t}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid">
-      <div class="fg"><label>Litros cargados</label><input type="number" inputmode="decimal" id="f-litros" step="0.01" placeholder="L" oninput="recalcularCarga('f-','litros')" onfocus="this.select()"></div>
-      <div class="fg"><label>Costo por litro</label><input type="number" inputmode="decimal" id="f-costoLitro" step="0.01" placeholder="$" oninput="recalcularCarga('f-','costoLitro')" onfocus="this.select()"></div>
+      <div class="fg"><label>Litros cargados</label><input type="number" inputmode="decimal" id="f-litros" step="0.01" placeholder="L" onfocus="this.select()" onchange="recalcularCarga('f-','litros')"></div>
+      <div class="fg"><label>Costo por litro</label><input type="number" inputmode="decimal" id="f-costoLitro" step="0.01" placeholder="$" onfocus="this.select()" onchange="recalcularCarga('f-','costoLitro')"></div>
     </div>
-    <div class="fg"><label>Total pagado</label><input type="number" inputmode="decimal" id="f-total" step="0.01" placeholder="$" oninput="recalcularCarga('f-','total')" onfocus="this.select()"></div>
+    <div class="fg"><label>Total pagado</label><input type="number" inputmode="decimal" id="f-total" step="0.01" placeholder="$" onfocus="this.select()" onchange="recalcularCarga('f-','total')"></div>
     <div class="fg" style="flex-direction:row;align-items:center;gap:10px;margin-top:6px">
       <input type="checkbox" id="f-lleno" checked style="width:18px;height:18px;accent-color:var(--primary)">
       <label style="text-transform:none;font-size:13px">⛽ ¿Tanque lleno?</label>
@@ -1672,16 +1672,16 @@ function renderVistaRapidaMobile(){
       <div class="vr-row">
         <div class="vr-fg">
           <label>Litros</label>
-          <input type="number" inputmode="decimal" id="vr-litros" step="0.01" placeholder="L" oninput="recalcularCarga('vr-','litros')" onfocus="this.select()">
+          <input type="number" inputmode="decimal" id="vr-litros" step="0.01" placeholder="L" onfocus="this.select()" onchange="recalcularCarga('vr-','litros')">
         </div>
         <div class="vr-fg">
           <label>$ / Litro</label>
-          <input type="number" inputmode="decimal" id="vr-costoLitro" step="0.01" placeholder="$" oninput="recalcularCarga('vr-','costoLitro')" onfocus="this.select()">
+          <input type="number" inputmode="decimal" id="vr-costoLitro" step="0.01" placeholder="$" onfocus="this.select()" onchange="recalcularCarga('vr-','costoLitro')">
         </div>
       </div>
       <div class="vr-fg">
         <label>Total pagado</label>
-        <input type="number" inputmode="decimal" id="vr-total" step="0.01" placeholder="$" oninput="recalcularCarga('vr-','total')" onfocus="this.select()">
+        <input type="number" inputmode="decimal" id="vr-total" step="0.01" placeholder="$" onfocus="this.select()" onchange="recalcularCarga('vr-','total')">
       </div>
       <div class="vr-switch">
         <label>⛽ ¿Tanque lleno?</label>
