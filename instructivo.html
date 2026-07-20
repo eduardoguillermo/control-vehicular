@@ -351,15 +351,20 @@
       <div class="section-icon">🛞</div>
       <div>
         <div class="section-title">Neumáticos / Batería</div>
-        <div class="section-subtitle">Vida útil real en kilómetros</div>
+        <div class="section-subtitle">Vida útil por km, por tiempo, o ambas</div>
       </div>
     </div>
     <p>A diferencia de los mantenimientos programados (que se repiten cada X km desde que se hicieron), acá lo que importa es la <b>vida útil estimada</b> de un componente que instalaste una vez y no se "repite" — se reemplaza cuando se gasta.</p>
+    <p>No todos los componentes se gastan por uso: los neumáticos sí dependen de los km recorridos, pero la <b>batería</b> típicamente se vence por tiempo (ej: 36 meses), la hayas usado mucho o poco. Por eso cada componente admite dos criterios independientes:</p>
+    <table>
+      <tr><th>Criterio</th><th>Ejemplo típico</th><th>Cómo se calcula</th></tr>
+      <tr><td><b>Por km</b></td><td>Neumáticos</td><td>km recorridos ÷ vida útil en km</td></tr>
+      <tr><td><b>Por tiempo</b></td><td>Batería</td><td>meses transcurridos ÷ vida útil en meses</td></tr>
+    </table>
+    <p>Podés cargar uno solo, o los dos a la vez — en ese caso la app usa el que esté <b>más avanzado</b> (el que se vaya a cumplir primero) para la barra de progreso y para la alerta.</p>
     <ul>
-      <li>Cargás el componente con el km de instalación (real o estimado, si ya estaba puesto cuando empezaste a usar la app) y su vida útil esperada en km.</li>
-      <li>La barra de progreso muestra qué porcentaje de esa vida útil ya se recorrió.</li>
-      <li>Al llegar al 90%, salta una alerta (igual que con los mantenimientos) al cargar combustible.</li>
-      <li>Cuando lo reemplazás, queda en el historial con la vida útil real que tuvo, comparada contra la estimada, y el costo por km de ese juego de neumáticos/batería en particular.</li>
+      <li>Al llegar al 90% de cualquiera de los dos criterios, salta una alerta al cargar combustible.</li>
+      <li>Cuando lo reemplazás, queda en el historial con la vida útil real que tuvo (en km y/o en meses, según corresponda), comparada contra la estimada, y el costo por km de ese componente en particular.</li>
     </ul>
   </div>
 
