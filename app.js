@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.28';
+const VERSION = 'v0.29';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -577,6 +577,25 @@ function eliminarComponente(uuid){
   DB.componentes = DB.componentes.filter(c=>c.uuid!==uuid);
   save();
   goTo('componentes');
+}
+
+// Edita un componente activo IN PLACE (corrige datos mal cargados), sin
+// pasar por el flujo de reemplazo (que da de baja el actual y crea uno nuevo).
+function editarComponente(uuid, datos){
+  const c = DB.componentes.find(x=>x.uuid===uuid);
+  if(!c) return;
+  Object.assign(c, {
+    tipo: datos.tipo,
+    descripcion: datos.descripcion || '',
+    km_instalacion: Number(datos.km_instalacion),
+    fecha_instalacion: datos.fecha_instalacion,
+    km_instalacion_estimado: !!datos.km_instalacion_estimado,
+    costo: Number(datos.costo)||0,
+    vida_util_estimada_km: Number(datos.vida_util_estimada_km)||0,
+    vida_util_meses: Number(datos.vida_util_meses)||0
+  });
+  tocar(c);
+  save();
 }
 
 // Un componente puede vencerse por km recorridos (neumáticos), por tiempo
@@ -1309,6 +1328,7 @@ function renderComponentes(){
                   <div class="text3" style="font-size:11px">Instalado: ${fmtKm(c.km_instalacion)} · ${fmtFecha(c.fecha_instalacion)}${c.km_instalacion_estimado?' <span class="amber">⚠️ estimado</span>':' ✅'}</div>
                 </div>
                 <div style="text-align:right">
+                  <button class="btn btn-sm" onclick="modalEditarComponente('${c.uuid}')">✎ Editar</button>
                   <button class="btn btn-sm btn-g" onclick="modalReemplazarComponente('${c.uuid}')">🔄 Reemplazar</button>
                   <button class="btn btn-sm btn-d" onclick="eliminarComponente('${c.uuid}')">✕</button>
                 </div>
@@ -1391,6 +1411,44 @@ function guardarNuevoComponente(){
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
   crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
+  cerrarModal(); goTo('componentes');
+}
+function modalEditarComponente(uuid){
+  const c = DB.componentes.find(x=>x.uuid===uuid);
+  if(!c) return;
+  abrirModal(`✎ Editar: ${escHtml(c.tipo)}`, `
+    <div class="fg"><label>Tipo</label><select id="f-tipo">${TIPOS_COMPONENTE.map(t=>`<option ${t===c.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="fg"><label>Descripción</label><input type="text" id="f-desc" value="${escHtml(c.descripcion)}"></div>
+    <div class="fgrid">
+      <div class="fg"><label>Km de instalación</label><input type="number" inputmode="numeric" id="f-km" value="${c.km_instalacion}" onfocus="this.select()"></div>
+      <div class="fg"><label>Fecha de instalación</label><input type="date" id="f-fecha" value="${c.fecha_instalacion.slice(0,10)}"></div>
+    </div>
+    <div class="fg" style="flex-direction:row;align-items:center;gap:8px">
+      <input type="checkbox" id="f-estimado" ${c.km_instalacion_estimado?'checked':''} style="width:16px;height:16px;accent-color:var(--primary)">
+      <label style="text-transform:none;font-size:12px">El km y/o la fecha son estimados</label>
+    </div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" value="${c.costo||''}" onfocus="this.select()"></div>
+    <div class="fgrid">
+      <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${c.vida_util_estimada_km||''}" onfocus="this.select()"></div>
+      <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" value="${c.vida_util_meses||''}" onfocus="this.select()"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarEdicionComponente('${uuid}')">Guardar</button>
+  `);
+}
+function guardarEdicionComponente(uuid){
+  const tipo = document.getElementById('f-tipo').value;
+  const descripcion = document.getElementById('f-desc').value.trim();
+  const km_instalacion = Number(document.getElementById('f-km').value);
+  const fecha_instalacion = new Date(document.getElementById('f-fecha').value).toISOString();
+  const km_instalacion_estimado = document.getElementById('f-estimado').checked;
+  const costo = Number(document.getElementById('f-costo').value)||0;
+  const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
+  const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
+  if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
+  if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
+  editarComponente(uuid, { tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
 }
 function modalReemplazarComponente(uuid){
