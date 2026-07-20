@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Vehicular · Manual de Usuario</title>
+<style>
+  :root {
+    --primary: #2d7a4f;
+    --primary-light: #e6f4ec;
+    --green: #10b981;
+    --green-light: #ecfdf5;
+    --amber: #f59e0b;
+    --amber-light: #fffbeb;
+    --red: #ef4444;
+    --red-light: #fef2f2;
+    --teal: #0f766e;
+    --teal-light: #f0fdfa;
+    --blue: #0284c7;
+    --blue-light: #f0f9ff;
+    --purple: #a855f7;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --sidebar-w: 260px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: var(--sidebar-w);
+    background: #1e293b;
+    color: #cbd5e1;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    padding: 0 0 32px 0;
+    z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 8px;
+  }
+  .sidebar-logo h1 { font-size: 16px; font-weight: 700; color: white; }
+  .sidebar-logo p { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .sidebar a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+  }
+  .sidebar a:hover, .sidebar a.active {
+    color: white;
+    background: #0f172a;
+    border-left-color: var(--primary);
+  }
+  .sidebar .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: #475569;
+    padding: 16px 20px 4px;
+  }
+  .content {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    max-width: 860px;
+    padding: 40px 48px 80px;
+  }
+
+  .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+  .section-icon { font-size: 28px; }
+  .section-title { font-size: 22px; font-weight: 700; color: var(--text); }
+  .section-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  h2 { font-size: 17px; font-weight: 700; margin: 28px 0 10px; color: var(--text); }
+  h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--text); }
+  p { margin-bottom: 10px; color: #374151; }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 5px; color: #374151; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .card-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .card-body { font-size: 13px; color: #4b5563; }
+
+  .note {
+    background: var(--amber-light);
+    border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #78350f;
+  }
+  .tip {
+    background: var(--green-light);
+    border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #065f46;
+  }
+  .warning {
+    background: var(--red-light);
+    border-left: 4px solid var(--red);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #7f1d1d;
+  }
+  .info {
+    background: var(--blue-light);
+    border-left: 4px solid var(--blue);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #0c4a6e;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+  th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid var(--border); }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) { background: #f8fafc; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-blue  { background: #dbeafe; color: #1e40af; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-red   { background: #fee2e2; color: #991b1b; }
+  .badge-purple{ background: #f3e8ff; color: #6b21a8; }
+
+  code {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #1e293b;
+  }
+
+  .steps { counter-reset: step; }
+  .step {
+    display: flex; gap: 14px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    counter-increment: step;
+    min-width: 28px; height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-body { padding-top: 4px; font-size: 14px; }
+
+  .hero {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+    padding: 40px 48px;
+    margin: -40px -48px 48px;
+  }
+  .hero h1 { font-size: 28px; font-weight: 800; }
+  .hero p { color: #94a3b8; margin-top: 6px; font-size: 15px; }
+  .hero-badges { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { margin-left: 0; padding: 20px 16px; }
+    .hero { margin: -20px -16px 32px; padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>🚗 Control Vehicular</h1>
+    <p>Manual de usuario</p>
+  </div>
+
+  <div class="section-label">Introducción</div>
+  <a href="#intro">🚗 ¿Qué es esta app?</a>
+  <a href="#navegacion">🗂 PC vs. celular</a>
+
+  <div class="section-label">Secciones (PC)</div>
+  <a href="#dashboard">📊 Dashboard</a>
+  <a href="#combustible">⛽ Combustible</a>
+  <a href="#mantenimientos">🔧 Mantenimientos</a>
+  <a href="#componentes">🛞 Neumáticos / Batería</a>
+  <a href="#gastos">💰 Gastos</a>
+  <a href="#vehiculos">🚙 Vehículos</a>
+
+  <div class="section-label">Celular</div>
+  <a href="#mobile">📱 Carga rápida</a>
+
+  <div class="section-label">Backup y datos</div>
+  <a href="#backup">💾 Backup / Snapshots</a>
+  <a href="#drive">☁️ Sincronización con Drive</a>
+  <a href="#salir">🚪 Salir</a>
+</nav>
+
+<div class="content">
+
+  <div class="hero">
+    <h1>🚗 Control Vehicular</h1>
+    <p>Gastos, rendimiento de combustible y mantenimiento de tus vehículos</p>
+    <div class="hero-badges">
+      <span class="badge badge-green">Multivehículo</span>
+      <span class="badge badge-blue">Backup en Drive</span>
+      <span class="badge badge-amber">Instalable (PWA)</span>
+    </div>
+  </div>
+
+  <div class="section" id="intro">
+    <div class="section-header">
+      <div class="section-icon">🚗</div>
+      <div>
+        <div class="section-title">¿Qué es esta app?</div>
+        <div class="section-subtitle">El concepto general</div>
+      </div>
+    </div>
+    <p>Control Vehicular lleva el registro de combustible, rendimiento, mantenimientos, neumáticos/batería y gastos de uno o más vehículos, para tener un costo por kilómetro real y no una estimación de memoria.</p>
+    <div class="card">
+      <div class="card-title">Todo gira alrededor de tres preguntas</div>
+      <div class="card-body">
+        <ul>
+          <li><b>¿Cuánto rinde el auto?</b> — a partir de las cargas de combustible con tanque lleno.</li>
+          <li><b>¿Cuándo toca el próximo service?</b> — a partir del kilometraje y los intervalos programados.</li>
+          <li><b>¿Cuánto me sale cada km recorrido?</b> — sumando combustible, mantenimientos, neumáticos/batería, gastos fijos y variables.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tip">Es multivehículo desde el diseño: podés cargar tu auto, tu moto, o los de toda la familia, y cada uno lleva sus números por separado.</div>
+  </div>
+
+  <div class="section" id="navegacion">
+    <div class="section-header">
+      <div class="section-icon">🗂</div>
+      <div>
+        <div class="section-title">PC vs. celular</div>
+        <div class="section-subtitle">Son dos experiencias distintas, a propósito</div>
+      </div>
+    </div>
+    <p>La app se comporta distinto según el dispositivo:</p>
+    <table>
+      <tr><th>Dispositivo</th><th>Qué ves</th></tr>
+      <tr><td><b>💻 PC</b></td><td>La app completa: Dashboard, Combustible, Mantenimientos, Componentes, Gastos, Vehículos y Backup.</td></tr>
+      <tr><td><b>📱 Celular</b></td><td>Solo la pantalla de <b>carga rápida de combustible</b> — el resto de los módulos se gestionan desde la PC.</td></tr>
+    </table>
+    <p>La idea es que el celular esté siempre a mano para cargar nafta en el momento (rápido, sin distracciones), y la PC sea donde se revisan reportes, se programan mantenimientos y se cargan gastos con más calma.</p>
+    <div class="info">Si alguna vez necesitás algo del celular que no sea cargar combustible, hay un link chico "Ver app completa" al pie del formulario que te lleva a la app entera, con un botón "📱 Carga rápida" para volver.</div>
+  </div>
+
+  <div class="section" id="dashboard">
+    <div class="section-header">
+      <div class="section-icon">📊</div>
+      <div>
+        <div class="section-title">Dashboard</div>
+        <div class="section-subtitle">El panorama del vehículo activo</div>
+      </div>
+    </div>
+    <p>Muestra de un vistazo:</p>
+    <ul>
+      <li>Kilometraje actual, último rendimiento y promedio de los últimos 3 meses</li>
+      <li>Gasto en combustible del mes y costo por km de los últimos 12 meses</li>
+      <li>Últimas 5 cargas, próximos mantenimientos y estado de neumáticos/batería</li>
+      <li>Alertas activas (mantenimiento vencido o componente por cambiar) arriba de todo</li>
+    </ul>
+  </div>
+
+  <div class="section" id="combustible">
+    <div class="section-header">
+      <div class="section-icon">⛽</div>
+      <div>
+        <div class="section-title">Combustible</div>
+        <div class="section-subtitle">Cargas, rendimiento y cálculo automático</div>
+      </div>
+    </div>
+    <h2>Los campos</h2>
+    <ul>
+      <li><b>Kilometraje actual</b> — se sugiere automáticamente el último conocido.</li>
+      <li><b>Marca</b> — Axion, YPF, Shell u Otras.</li>
+      <li><b>Tipo</b> — Super o Prime.</li>
+      <li><b>Litros</b>, <b>Costo por litro</b> y <b>Total pagado</b> — se calculan solos entre sí: si cargás dos de los tres, el tercero se completa automáticamente (litros + precio/L → total, o litros + total → precio/L). El que estés tipeando en ese momento nunca se pisa solo.</li>
+      <li><b>¿Tanque lleno?</b> — arranca tildado por default (para el caso normal de siempre llenar el tanque); destildalo solo en cargas parciales.</li>
+    </ul>
+    <h2>Cómo se calcula el rendimiento</h2>
+    <p>Solo se calcula cuando marcás <b>tanque lleno</b>. Toma la diferencia de km desde la última vez que llenaste el tanque, y la divide por la suma de todos los litros cargados desde entonces (incluyendo cargas parciales intermedias que hayas hecho en el medio).</p>
+    <div class="note">La primera carga con "tanque lleno" que registrás para un vehículo nuevo no tiene rendimiento todavía — recién queda como punto de partida para la próxima.</div>
+    <p>El KPI de <b>rendimiento promedio</b> del Dashboard usa el promedio de las cargas con rendimiento calculado de los últimos 3 meses, para ver la tendencia real del vehículo.</p>
+  </div>
+
+  <div class="section" id="mantenimientos">
+    <div class="section-header">
+      <div class="section-icon">🔧</div>
+      <div>
+        <div class="section-title">Mantenimientos</div>
+        <div class="section-subtitle">Programados y a demanda</div>
+      </div>
+    </div>
+    <h2>🔁 Servicios programados</h2>
+    <p>Para lo que se repite con un intervalo fijo de kilometraje: aceite, filtros, correa de distribución, etc.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num"></div><div class="step-body">Creás el servicio con un nombre y cada cuántos km se repite.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">La app calcula sola el próximo km en que toca, a partir del último registrado.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Cada vez que cargás combustible, se cruza el km nuevo contra todos los servicios programados. Si ya se pasó el km del próximo service, salta una alerta automática.</div></div>
+    </div>
+    <h2>🔨 A demanda</h2>
+    <p>Para todo lo puntual que <b>no</b> sigue un patrón fijo de km: cambio de lámpara, alineación y balanceo, lavado, escobillas, reparaciones eléctricas, etc.</p>
+    <p>Se cargan con un nombre libre (hay sugerencias, pero podés tipear cualquier cosa), kilometraje, costo y notas. No generan alertas futuras — quedan en el historial y suman al costo por km igual que cualquier otro mantenimiento.</p>
+    <div class="tip">Ambos tipos (programados y a demanda) aparecen juntos en el mismo historial, con la etiqueta <code>(a demanda)</code> para diferenciar los que no tienen recurrencia.</div>
+  </div>
+
+  <div class="section" id="componentes">
+    <div class="section-header">
+      <div class="section-icon">🛞</div>
+      <div>
+        <div class="section-title">Neumáticos / Batería</div>
+        <div class="section-subtitle">Vida útil real en kilómetros</div>
+      </div>
+    </div>
+    <p>A diferencia de los mantenimientos programados (que se repiten cada X km desde que se hicieron), acá lo que importa es la <b>vida útil estimada</b> de un componente que instalaste una vez y no se "repite" — se reemplaza cuando se gasta.</p>
+    <ul>
+      <li>Cargás el componente con el km de instalación (real o estimado, si ya estaba puesto cuando empezaste a usar la app) y su vida útil esperada en km.</li>
+      <li>La barra de progreso muestra qué porcentaje de esa vida útil ya se recorrió.</li>
+      <li>Al llegar al 90%, salta una alerta (igual que con los mantenimientos) al cargar combustible.</li>
+      <li>Cuando lo reemplazás, queda en el historial con la vida útil real que tuvo, comparada contra la estimada, y el costo por km de ese juego de neumáticos/batería en particular.</li>
+    </ul>
+  </div>
+
+  <div class="section" id="gastos">
+    <div class="section-header">
+      <div class="section-icon">💰</div>
+      <div>
+        <div class="section-title">Gastos</div>
+        <div class="section-subtitle">Fijos, variables y costo por kilómetro</div>
+      </div>
+    </div>
+    <h2>Gastos fijos</h2>
+    <p>Seguro, patente, cochera, alarma — cosas que pagás tengas el auto parado o lo uses todos los días. Se cargan con una periodicidad (mensual, anual o único) y se prorratean automáticamente según el rango de fechas que estés mirando.</p>
+    <h2>Gastos variables</h2>
+    <p>Multas, peajes, estacionamiento, reparaciones no programadas. (El lavado quedó en Mantenimientos → A demanda, para no duplicar el criterio.)</p>
+    <h2>Costo por kilómetro</h2>
+    <p>Elegís un rango de fechas y la app calcula dos números:</p>
+    <table>
+      <tr><th>KPI</th><th>Qué incluye</th></tr>
+      <tr><td><b>$/km total</b></td><td>Combustible + mantenimientos + neumáticos/batería + gastos variables + gastos fijos prorrateados</td></tr>
+      <tr><td><b>$/km variable</b></td><td>Lo mismo pero sin los gastos fijos — cuánto te cuesta cada km que decidís manejar, útil para comparar contra otras opciones de transporte</td></tr>
+    </table>
+    <div class="note">El cálculo necesita al menos dos cargas de combustible dentro del rango elegido para saber cuántos km se recorrieron en ese período.</div>
+  </div>
+
+  <div class="section" id="vehiculos">
+    <div class="section-header">
+      <div class="section-icon">🚙</div>
+      <div>
+        <div class="section-title">Vehículos</div>
+        <div class="section-subtitle">Multivehículo desde el vamos</div>
+      </div>
+    </div>
+    <p>Cada vehículo se identifica por <b>matrícula</b> (no por un nombre libre), y guarda su tipo, marca, modelo, año y kilometraje inicial del odómetro al momento de empezar a usar la app.</p>
+    <p>El selector de vehículo activo está siempre visible en la barra superior (PC) o arriba del formulario (celular). Todo lo que cargás — combustible, mantenimientos, componentes, gastos — queda asociado al vehículo que esté activo en ese momento.</p>
+    <div class="warning">Eliminar un vehículo borra también <b>todo</b> su historial asociado (cargas, mantenimientos, componentes, gastos). No se puede deshacer.</div>
+  </div>
+
+  <div class="section" id="mobile">
+    <div class="section-header">
+      <div class="section-icon">📱</div>
+      <div>
+        <div class="section-title">Carga rápida (celular)</div>
+        <div class="section-subtitle">Lo único que ves en el cel</div>
+      </div>
+    </div>
+    <p>Al abrir la app desde el celular, entrás directo a un formulario de una sola pantalla: vehículo activo, kilometraje, marca, tipo, litros, precio/L, total y el switch de tanque lleno.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num"></div><div class="step-body">Cargás los datos de la carga que acabás de hacer.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Tocás <b>Guardar carga</b>. Si corresponde, te muestra el rendimiento calculado y cualquier alerta de mantenimiento o componente.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">El formulario queda limpio y listo para la próxima carga.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Cuando terminás, tocás <b>🚪 Guardar y salir</b>: hace snapshot local + backup a Drive, y confirma. La app queda abierta para la próxima vez (no se cierra sola, a diferencia de la PC).</div></div>
+    </div>
+    <div class="tip">No hace falta "cerrar" la app en el celular después de cada carga — con tocar Guardar y salir una vez que terminaste ya quedó todo respaldado.</div>
+  </div>
+
+  <div class="section" id="backup">
+    <div class="section-header">
+      <div class="section-icon">💾</div>
+      <div>
+        <div class="section-title">Backup / Snapshots</div>
+        <div class="section-subtitle">Copias de seguridad locales</div>
+      </div>
+    </div>
+    <p>Además del backup en Drive, la app guarda automáticamente <b>snapshots locales</b> (hasta 10) cada vez que minimizás, cambiás de pestaña, o cerrás la app. También podés forzar uno manual desde Backup → Crear snapshot manual.</p>
+    <p>Si algo sale mal, podés restaurar cualquier snapshot desde la sección Backup — reemplaza todos los datos actuales por los de ese momento.</p>
+  </div>
+
+  <div class="section" id="drive">
+    <div class="section-header">
+      <div class="section-icon">☁️</div>
+      <div>
+        <div class="section-title">Sincronización con Drive</div>
+        <div class="section-subtitle">Cómo viajan los datos entre celular y PC</div>
+      </div>
+    </div>
+    <p>Control Vehicular guarda un único archivo <code>control-vehicular_backup.json</code> en una carpeta <b>ControlVehicular</b> visible en tu Google Drive.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num"></div><div class="step-body">Conectás Drive una vez desde Backup → Conectar (o directamente al tocar Sincronizar).</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Cada carga que guardás sube el backup solo, con un pequeño retraso (debounce de 5 segundos) para no golpear la API en cada tecla.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Al tocar Sincronizar manualmente, la app baja lo que haya en Drive, lo combina con lo que tenés localmente (por registro, priorizando el más reciente) y vuelve a subir todo junto.</div></div>
+    </div>
+    <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente.</div>
+  </div>
+
+  <div class="section" id="salir">
+    <div class="section-header">
+      <div class="section-icon">🚪</div>
+      <div>
+        <div class="section-title">Salir</div>
+        <div class="section-subtitle">Distinto en celular y en PC</div>
+      </div>
+    </div>
+    <table>
+      <tr><th>Dispositivo</th><th>Qué hace "Salir"</th></tr>
+      <tr><td>📱 Celular</td><td>Snapshot local + backup a Drive, y confirma con un botón "Listo". La app sigue abierta.</td></tr>
+      <tr><td>💻 PC</td><td>Lo mismo, pero termina con un botón "Cerrar app" que intenta cerrar la pestaña.</td></tr>
+    </table>
+    <div class="note">Los navegadores bloquean el cierre automático de pestañas que no fueron abiertas por script — es una limitación de seguridad del navegador, no de la app. Si no se cierra sola, el mensaje final te confirma que ya podés cerrarla vos.</div>
+  </div>
+
+</div>
+</div>
+
+<script>
+  document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
