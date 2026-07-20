@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.24';
+const VERSION = 'v0.25';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -14,6 +14,8 @@ const SUGERENCIAS_MANTENIMIENTO_DEMANDA = [
   'Cambio de lámpara','Alineación y balanceo','Lavado','Cambio de escobillas',
   'Revisión de frenos','Reparación de aire acondicionado','Reparación eléctrica','Otro'
 ];
+const UMBRAL_KM_AVISO_VENCIMIENTO = 500; // avisar en el modal si faltan <= 500km para un mantenimiento
+const UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // avisar si un componente llegó al 80% de su vida útil
 
 // ── DB ────────────────────────────────────────────────────────────────────────
 let DB = {
@@ -732,6 +734,92 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
     costoPorKmVariable: totalVariable / kmRecorridos,
     desglose: { totalCombustible, totalMantenimientos, totalComponentes, totalVariablesExtra, totalFijos, gastoTotal }
   };
+}
+
+// ── MODAL DE PRÓXIMOS VENCIMIENTOS (al abrir la app, como en FinanzasPro) ───
+function calcularVencimientos(vehiculoId){
+  const km = kmActualVehiculo(vehiculoId);
+  const items = [];
+
+  DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId).forEach(p => {
+    const proximoKm = proximoKmMantenimiento(p);
+    const faltan = proximoKm - km;
+    if(faltan <= UMBRAL_KM_AVISO_VENCIMIENTO){
+      items.push({
+        tipo: 'mantenimiento', id: p.uuid, nombre: p.nombre_servicio,
+        detalle: faltan <= 0 ? `Vencido hace ${fmtKm(-faltan)}` : `Faltan ${fmtKm(faltan)}`,
+        urgente: faltan <= 0,
+        orden: faltan
+      });
+    }
+  });
+
+  componentesVehiculo(vehiculoId, true).forEach(c => {
+    if(!c.vida_util_estimada_km && !c.vida_util_meses) return;
+    const e = estadoComponente(c, km);
+    if(e.porcentajeUsado >= UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO){
+      const detalle = e.criterioLimitante === 'tiempo'
+        ? (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtFecha(e.proximoCambioEstimadoFecha)}` : `Vence ${fmtFecha(e.proximoCambioEstimadoFecha)}`)
+        : (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtKm(e.proximoCambioEstimadoKm)}` : `Vence a los ${fmtKm(e.proximoCambioEstimadoKm)}`);
+      items.push({
+        tipo: 'componente', id: c.uuid, nombre: `${c.tipo}${c.descripcion?' — '+c.descripcion:''}`,
+        detalle: `${detalle} (${e.porcentajeUsado.toFixed(0)}%)`,
+        urgente: e.porcentajeUsado >= 100,
+        orden: 100 - e.porcentajeUsado
+      });
+    }
+  });
+
+  items.sort((a,b) => (b.urgente - a.urgente) || (a.orden - b.orden));
+  return items;
+}
+
+function mostrarModalVencimientos(){
+  const v = vehiculoActivo();
+  if(!v) return;
+  const items = calcularVencimientos(v.uuid);
+  if(!items.length) return;
+
+  const filas = items.map(it => {
+    const color = it.urgente ? '#f85149' : '#d29922';
+    const bg = it.urgente ? 'rgba(248,81,73,.1)' : 'rgba(210,153,34,.1)';
+    const badge = it.urgente ? 'Vencido' : 'Próximo';
+    const accion = it.tipo === 'mantenimiento'
+      ? `<button class="btn btn-sm btn-g" onclick="cerrarModalVencimientos();modalRegistrarMantenimiento('${it.id}')">✓ Registrar</button>`
+      : `<button class="btn btn-sm btn-g" onclick="cerrarModalVencimientos();modalReemplazarComponente('${it.id}')">🔄 Reemplazar</button>`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:${bg};border-left:3px solid ${color}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${escHtml(it.nombre)}</div>
+        <div style="font-size:11px;color:var(--text2)">${escHtml(it.detalle)}</div>
+      </div>
+      <span style="font-size:10px;font-weight:700;color:#fff;background:${color};padding:3px 8px;border-radius:10px;white-space:nowrap">${badge}</span>
+      ${accion}
+    </div>`;
+  }).join('');
+
+  const existente = document.getElementById('modal-vencimientos');
+  if(existente) existente.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'modal-vencimientos';
+  ov.className = 'moverlay';
+  ov.style.zIndex = '1500';
+  ov.innerHTML = `
+    <div class="modal">
+      <div class="mhead">
+        <h3>⚠️ Próximos vencimientos ${btnAyuda('vencimientos')}</h3>
+        <button class="btn btn-sm" onclick="cerrarModalVencimientos()">✕</button>
+      </div>
+      <div class="mbody">${filas}</div>
+      <div class="mfoot"><button class="btn" onclick="cerrarModalVencimientos()" style="width:100%">Cerrar</button></div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target===ov) cerrarModalVencimientos(); });
+}
+function cerrarModalVencimientos(){
+  const el = document.getElementById('modal-vencimientos');
+  if(el) el.remove();
 }
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────────────────
@@ -1664,6 +1752,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarSplash();
     document.querySelector('.main').style.display = 'flex';
     goTo('dashboard');
+    setTimeout(mostrarModalVencimientos, 800);
   }
 
   if(typeof DriveSync !== 'undefined'){
@@ -1714,6 +1803,7 @@ function abrirAppCompletaDesdeMobile(){
   const btnVolver = document.getElementById('btn-volver-mobile');
   if(btnVolver) btnVolver.style.display = 'inline-block';
   goTo('dashboard');
+  setTimeout(mostrarModalVencimientos, 400);
 }
 
 function renderVistaRapidaMobile(){
