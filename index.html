@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Vehicular</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=16">
+<link rel="apple-touch-icon" href="icon-192.png?v=16">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d7a4f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="C.Vehicular">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">
+    <div class="logo-icon">🚗</div>
+    <div>
+      <div class="logo-text">Control Vehicular</div>
+      <div class="logo-sub">Gastos y mantenimiento · <span id="nav-version"></span></div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Principal</div>
+    <a onclick="goTo('dashboard')" id="nav-dashboard">📊 Dashboard</a>
+    <a onclick="goTo('combustible')" id="nav-combustible">⛽ Combustible</a>
+    <a onclick="goTo('mantenimientos')" id="nav-mantenimientos">🔧 Mantenimientos</a>
+    <a onclick="goTo('componentes')" id="nav-componentes">🛞 Neumáticos / Batería</a>
+    <a onclick="goTo('gastos')" id="nav-gastos">💰 Gastos</a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Sistema</div>
+    <a onclick="goTo('vehiculos')" id="nav-vehiculos">🚙 Vehículos</a>
+    <a onclick="goTo('backup')" id="nav-backup">💾 Backup</a>
+  </div>
+</nav>
+
+<!-- NAV OVERLAY (mobile) -->
+<div class="nav-overlay" id="nav-overlay" onclick="toggleNav()"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="nav-toggle" id="nav-toggle" onclick="toggleNav()">&#9776;</button>
+    <button id="btn-volver-mobile" onclick="volverVistaMobile()" style="display:none;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#94a3b8;font-size:12px;cursor:pointer;padding:5px 10px;flex-shrink:0;">📱 Carga rápida</button>
+    <div class="ptitle" id="ptitle">Dashboard</div>
+    <div class="vsel" id="vsel-wrap" style="display:none">
+      <span>🚗</span>
+      <select id="vsel" onchange="cambiarVehiculoActivo(this.value)"></select>
+    </div>
+    <div class="pacts" id="pacts"></div>
+    <button onclick="window.open('./instructivo.html','_blank','width=1100,height=750,resizable=yes,scrollbars=yes')" title="Ayuda" style="background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#94a3b8;font-size:12px;cursor:pointer;padding:5px 10px;flex-shrink:0;margin-right:6px;">❓ Ayuda</button>
+    <button onclick="cvSalir()" title="Salir" style="background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#94a3b8;font-size:12px;cursor:pointer;padding:5px 10px;flex-shrink:0;">🚪 Salir</button>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- MODAL -->
+<div class="moverlay" id="modal" style="display:none" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <div class="mhead">
+      <h3 id="modal-title"></h3>
+      <button class="btn btn-sm" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="mbody" id="modal-body"></div>
+    <div class="mfoot" id="modal-foot"></div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-sync.js"></script>
+<script src="app.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/control-vehicular/sw.js')
+    .then(r => console.log('SW registrado:', r.scope))
+    .catch(e => console.error('SW error:', e));
+}
+</script>
+</body>
+</html>
