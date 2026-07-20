@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.25';
+const VERSION = 'v0.26';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -254,6 +254,7 @@ async function cvBorrarTodo(){
 // ── HELPERS DE FORMATO ───────────────────────────────────────────────────────
 function fmtMoney(n){ return '$ ' + Math.round(Number(n)||0).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 function fmtKm(n){ return (Number(n)||0).toLocaleString('es-AR') + ' km'; }
+function fmtSemanas(n){ const v = Math.abs(Math.round(n)); return v===1 ? '1 semana' : `${v} semanas`; }
 function fmtNum(n, dec=2){ return (Number(n)||0).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec}); }
 function fmtFecha(iso){
   if(!iso) return '—';
@@ -598,11 +599,15 @@ function estadoComponente(componente, kmActual){
   }
   porcentajeUsado = Math.max(0, Math.min(porcentajeUsado, 100));
 
+  const proximoCambioEstimadoFecha = tieneMeses ? sumarMeses(componente.fecha_instalacion, componente.vida_util_meses).toISOString() : null;
+  // Semanas restantes (o negativas si ya venció) — mismo lenguaje que "faltan X km"
+  const semanasRestantes = tieneMeses ? Math.round((new Date(proximoCambioEstimadoFecha) - new Date()) / (86400000*7)) : null;
+
   return {
     kmRecorridos, mesesTranscurridos, tieneKm, tieneMeses,
     porcentajeKm, porcentajeTiempo, porcentajeUsado, criterioLimitante,
     proximoCambioEstimadoKm: tieneKm ? componente.km_instalacion + componente.vida_util_estimada_km : null,
-    proximoCambioEstimadoFecha: tieneMeses ? sumarMeses(componente.fecha_instalacion, componente.vida_util_meses).toISOString() : null
+    proximoCambioEstimadoFecha, semanasRestantes
   };
 }
 
@@ -635,7 +640,7 @@ function verificarComponentes(vehiculoId, kmActual){
       const yaAlertado = DB.alertas.some(a => a.componenteId===c.uuid && !a.atendida);
       if(!yaAlertado){
         const detalleProximo = estado.criterioLimitante === 'tiempo'
-          ? `alrededor de ${fmtFecha(estado.proximoCambioEstimadoFecha)}`
+          ? (estado.semanasRestantes <= 0 ? `vencido hace ${fmtSemanas(estado.semanasRestantes)}` : `faltan ${fmtSemanas(estado.semanasRestantes)}`)
           : `~${fmtKm(estado.proximoCambioEstimadoKm)}`;
         const alerta = tocar({
           uuid: cvNuevoUUID(),
@@ -759,7 +764,7 @@ function calcularVencimientos(vehiculoId){
     const e = estadoComponente(c, km);
     if(e.porcentajeUsado >= UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO){
       const detalle = e.criterioLimitante === 'tiempo'
-        ? (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtFecha(e.proximoCambioEstimadoFecha)}` : `Vence ${fmtFecha(e.proximoCambioEstimadoFecha)}`)
+        ? (e.semanasRestantes <= 0 ? `Vencido hace ${fmtSemanas(e.semanasRestantes)}` : `Faltan ${fmtSemanas(e.semanasRestantes)}`)
         : (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtKm(e.proximoCambioEstimadoKm)}` : `Vence a los ${fmtKm(e.proximoCambioEstimadoKm)}`);
       items.push({
         tipo: 'componente', id: c.uuid, nombre: `${c.tipo}${c.descripcion?' — '+c.descripcion:''}`,
@@ -994,7 +999,7 @@ function renderTablaComponentesActivos(vehiculoId, km){
     const e = estadoComponente(c, km);
     const cls = e.porcentajeUsado>=90?'vprog-crit':(e.porcentajeUsado>=70?'vprog-warn':'vprog-ok');
     const proximo = e.criterioLimitante === 'tiempo'
-      ? `Próximo cambio estimado: ${fmtFecha(e.proximoCambioEstimadoFecha)}`
+      ? `${e.semanasRestantes<=0?`Vencido hace ${fmtSemanas(e.semanasRestantes)}`:`Faltan ${fmtSemanas(e.semanasRestantes)}`} (${fmtFecha(e.proximoCambioEstimadoFecha)})`
       : `Próximo cambio estimado: ${fmtKm(e.proximoCambioEstimadoKm)}`;
     return `<div style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
@@ -1295,7 +1300,7 @@ function renderComponentes(){
           if(e.tieneMeses) partesDetalle.push(`${e.mesesTranscurridos.toFixed(1)} meses transcurridos (${e.porcentajeTiempo.toFixed(0)}% por tiempo)`);
           const partesProximo = [];
           if(e.tieneKm) partesProximo.push(`~${fmtKm(e.proximoCambioEstimadoKm)}`);
-          if(e.tieneMeses) partesProximo.push(`~${fmtFecha(e.proximoCambioEstimadoFecha)}`);
+          if(e.tieneMeses) partesProximo.push(`${e.semanasRestantes<=0?`vencido hace ${fmtSemanas(e.semanasRestantes)}`:`faltan ${fmtSemanas(e.semanasRestantes)}`} (~${fmtFecha(e.proximoCambioEstimadoFecha)})`);
           return `<div class="card" style="margin-bottom:10px">
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
