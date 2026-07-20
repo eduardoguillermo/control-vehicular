@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.27';
+const VERSION = 'v0.28';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -1367,11 +1367,11 @@ function modalNuevoComponente(){
       <input type="checkbox" id="f-estimado" style="width:16px;height:16px;accent-color:var(--primary)">
       <label style="text-transform:none;font-size:12px">El km y/o la fecha son estimados (ya estaba puesto cuando empecé a usar la app)</label>
     </div>
-    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$" onfocus="this.select()"></div>
     <p class="text3" style="font-size:11px;margin-bottom:6px">Completá el criterio de vida útil que corresponda — por km (neumáticos), por tiempo desde la fecha de instalación (batería), o ambos si querés que alerte con el que se cumpla primero.</p>
     <div class="fgrid">
-      <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" placeholder="Ej: 50000"></div>
-      <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" placeholder="Ej: 36"></div>
+      <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" placeholder="Ej: 50000" onfocus="this.select()"></div>
+      <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" placeholder="Ej: 36" onfocus="this.select()"></div>
     </div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
@@ -1406,10 +1406,10 @@ function modalReemplazarComponente(uuid){
       <div class="text2" style="font-size:11px;margin-bottom:8px;text-transform:uppercase;font-weight:700">Datos del componente nuevo</div>
       <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
       <div class="fg"><label>Fecha de instalación (del nuevo)</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
-      <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+      <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$" onfocus="this.select()"></div>
       <div class="fgrid">
-        <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${anterior.vida_util_estimada_km||''}"></div>
-        <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" value="${anterior.vida_util_meses||''}"></div>
+        <div class="fg"><label>Vida útil (km)</label><input type="number" inputmode="numeric" id="f-vidautil" value="${anterior.vida_util_estimada_km||''}" onfocus="this.select()"></div>
+        <div class="fg"><label>Vida útil (meses)</label><input type="number" inputmode="numeric" id="f-vidautilmeses" value="${anterior.vida_util_meses||''}" onfocus="this.select()"></div>
       </div>
     </div>
   `, `
