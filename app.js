@@ -2,7 +2,8 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.22';
+const VERSION = 'v0.23';
+const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
 const CATEGORIAS_GASTO_VAR = ['Multas','Peajes','Estacionamiento','Reparación no programada','Otro'];
@@ -131,8 +132,11 @@ async function cvSalir(){
 
   // 2. Backup a Drive (si está conectado) — esto corre igual en cel y PC,
   // porque el celular es el que carga los datos y necesita subirlos.
+  // En DEV_MODE nunca se sube nada, ni se intenta: solo queda el snapshot local.
   const driveEl = document.getElementById('salir-drive');
-  if(DriveSync.conectado){
+  if(DEV_MODE){
+    if(driveEl) driveEl.innerHTML = '<span class="amber">🔒</span><span>DEV es de solo lectura — no se sube nada a Drive</span>';
+  } else if(DriveSync.conectado){
     try{
       await DriveSync.subirBackup(DB, true);
       if(driveEl) driveEl.innerHTML = '<span class="green">☁️</span><span>Backup subido a Drive</span>';
@@ -192,14 +196,25 @@ async function cvSincronizarDrive(){
   try{
     const remoto = await DriveSync.bajarBackup();
     if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
-      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
-        .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
-      if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
+      // En DEV_MODE se reemplaza directamente por los datos de PROD (no se
+      // mergea con lo local) para tener siempre una copia fiel para probar,
+      // sin arriesgarse a subir nunca ese merge a ningún lado.
+      if(DEV_MODE){
+        DB = remoto;
+      } else {
+        ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+          .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
+        if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
+      }
       normalizarDB();
       save();
     }
-    await DriveSync.subirBackup(DB);
-    alert('✅ Sincronizado con Drive.');
+    if(DEV_MODE){
+      alert('✅ Datos actualizados desde PROD (solo lectura — DEV nunca sube nada a Drive).');
+    } else {
+      await DriveSync.subirBackup(DB);
+      alert('✅ Sincronizado con Drive.');
+    }
     goTo(_currentView || 'dashboard');
   } catch(e){
     console.error(e);
@@ -1536,8 +1551,9 @@ function renderBackup(){
     <div class="card">
       <div class="ch"><div class="ct">☁️ Google Drive</div></div>
       <div class="card-body">
+        ${DEV_MODE ? `<div class="alert alert-info" style="margin-bottom:10px">🔒 Este entorno es <b>DEV</b>: lee el backup real de PROD para tener datos de prueba parecidos a los reales, pero tiene bloqueada la escritura — nunca sube ni modifica nada en Drive, ni acá ni en "Salir" ni en el guardado automático.</div>` : ''}
         <p class="text2" style="margin-bottom:10px">Estado: ${conectado?'<span class="green">✅ Conectado</span>':'<span class="text3">No conectado</span>'}</p>
-        <button class="btn btn-p" onclick="cvSincronizarDrive()">🔄 ${conectado?'Sincronizar ahora':'Conectar y sincronizar'}</button>
+        <button class="btn btn-p" onclick="cvSincronizarDrive()">🔄 ${conectado?(DEV_MODE?'Traer datos de PROD':'Sincronizar ahora'):'Conectar'}</button>
       </div>
     </div>
     <div class="card">
