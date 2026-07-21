@@ -213,3 +213,22 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .vr-footer button.vr-salir{background:#334155;color:#fff;border-color:#334155}
 .vr-confirm{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:10px;padding:14px;text-align:center;color:var(--green);font-size:13px}
 .vr-full-link{text-align:center;font-size:11px;color:var(--text3);margin-top:6px}
+
+/* ── REPORTES: gráfico combinado de barras (km + gasto por mes) ───────────── */
+.barchart-legend{display:flex;gap:14px;margin-bottom:12px;font-size:11px;color:var(--text2);flex-wrap:wrap}
+.barchart-legend-item{display:flex;align-items:center;gap:5px}
+.barchart-legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+.barchart-combo{display:flex;align-items:flex-end;gap:10px;height:200px;padding:10px 2px 0;border-bottom:1px solid var(--border);overflow-x:auto}
+.barchart-combo-col{flex:1;min-width:44px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.barchart-combo-bars{display:flex;align-items:flex-end;gap:3px;height:100%;width:100%;justify-content:center}
+.barchart-combo-bar{width:38%;border-radius:3px 3px 0 0;min-height:2px;transition:height .4s ease}
+.barchart-combo-bar-km{background:#3b82f6}
+.barchart-combo-bar-gasto{background:var(--primary)}
+.barchart-combo-bar-km.en-curso{background:repeating-linear-gradient(45deg,#3b82f6,#3b82f6 3px,#1e3a5f 3px,#1e3a5f 6px)}
+.barchart-combo-bar-gasto.en-curso{background:repeating-linear-gradient(45deg,var(--primary),var(--primary) 3px,var(--primary-dark) 3px,var(--primary-dark) 6px)}
+.barchart-combo-label{font-size:9px;color:var(--text3);margin-top:6px;white-space:nowrap}
+.barchart-combo-label.en-curso{color:var(--text);font-weight:700}
+@media (max-width:768px){
+  .barchart-combo{height:160px}
+  .barchart-combo-col{min-width:36px}
+}
