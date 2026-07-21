@@ -1,4 +1,4 @@
-const CACHE = 'control-vehicular-v0.32';
+const CACHE = 'control-vehicular-v0.34';
 const ASSETS = [
   '/control-vehicular/',
   '/control-vehicular/index.html',
