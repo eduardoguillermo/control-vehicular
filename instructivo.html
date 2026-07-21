@@ -224,6 +224,7 @@
   <a href="#mantenimientos">🔧 Mantenimientos</a>
   <a href="#componentes">🛞 Componentes</a>
   <a href="#gastos">💰 Gastos</a>
+  <a href="#reportes">📈 Reportes</a>
   <a href="#vehiculos">🚙 Vehículos</a>
 
   <div class="section-label">Celular</div>
@@ -418,6 +419,24 @@
       <tr><td><b>$/km variable</b></td><td>Lo mismo pero sin los gastos fijos — cuánto te cuesta cada km que decidís manejar, útil para comparar contra otras opciones de transporte</td></tr>
     </table>
     <div class="note">El cálculo necesita al menos dos cargas de combustible dentro del rango elegido para saber cuántos km se recorrieron en ese período.</div>
+  </div>
+
+  <div class="section" id="reportes">
+    <div class="section-header">
+      <div class="section-icon">📈</div>
+      <div>
+        <div class="section-title">Reportes</div>
+        <div class="section-subtitle">Km y gasto por mes, últimos 12 meses</div>
+      </div>
+    </div>
+    <p>Un gráfico de barras combinado del vehículo activo, con dos barras por mes:</p>
+    <ul>
+      <li><b>Km recorridos</b> (azul) — la diferencia entre el km del odómetro al final de cada mes y al final del mes anterior. No hace falta haber cargado combustible ese mes exacto; usa el último km conocido en cada punto en el tiempo (de cargas o mantenimientos).</li>
+      <li><b>Gasto total</b> (verde) — combustible + mantenimientos + componentes + gastos variables + gastos fijos prorrateados, con el mismo criterio que el costo por km de la sección Gastos, pero desglosado mes a mes en vez de en un solo número.</li>
+    </ul>
+    <p>Cada serie se escala a su propio máximo (no comparten eje), así que la altura de una barra se compara contra las demás barras de su mismo color, no entre azul y verde.</p>
+    <div class="note">El <b>mes en curso</b> se distingue con un patrón rayado — es un dato parcial que se va a seguir agrandando a medida que cargues combustible y gastos durante el mes.</div>
+    <div class="info">Sirve para ver de un vistazo si un mes con más gasto se explica por más uso (más km) o por algo puntual (un service grande, un cambio de neumáticos) que no tiene que ver con cuánto manejaste.</div>
   </div>
 
   <div class="section" id="vehiculos">
