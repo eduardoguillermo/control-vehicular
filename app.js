@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.32';
+const VERSION = 'v0.34';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -28,6 +28,7 @@ let DB = {
   gastosFijos: [],
   gastosVariables: [],
   alertas: [],
+  tiposComponenteCustom: [],
   config: { vehiculoActivo: null }
 };
 
@@ -42,6 +43,7 @@ function normalizarDB(){
   if(!DB.nid) DB.nid = 1;
   ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
     .forEach(k => { if(!DB[k]) DB[k] = []; });
+  if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
   if(!DB.config) DB.config = {};
   if(DB.config.vehiculoActivo === undefined) DB.config.vehiculoActivo = null;
 
@@ -238,6 +240,7 @@ async function cvBorrarTodo(){
     nid: 1,
     vehiculos: [], cargas: [], mantenimientosProgramados: [], mantenimientosRealizados: [],
     componentes: [], gastosFijos: [], gastosVariables: [], alertas: [],
+    tiposComponenteCustom: [],
     config: { vehiculoActivo: null }
   };
   save();
@@ -850,7 +853,7 @@ function cerrarModalVencimientos(){
 let _currentView = 'dashboard';
 const TITULOS = {
   dashboard: 'Dashboard', combustible: 'Combustible', mantenimientos: 'Mantenimientos',
-  componentes: 'Neumáticos / Batería', gastos: 'Gastos', vehiculos: 'Vehículos', backup: 'Backup'
+  componentes: 'Componentes', gastos: 'Gastos', vehiculos: 'Vehículos', backup: 'Backup'
 };
 
 function toggleNav(){
@@ -1378,8 +1381,29 @@ function renderComponentes(){
 // sugerencia la próxima vez, sin perder la posibilidad de escribir uno nuevo).
 function tiposComponenteDisponibles(){
   const usados = DB.componentes.map(c=>c.tipo).filter(Boolean);
-  const set = new Set([...TIPOS_COMPONENTE, ...usados]);
-  return Array.from(set);
+  const set = new Set([...TIPOS_COMPONENTE, ...DB.tiposComponenteCustom, ...usados]);
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
+}
+// Guarda un tipo nuevo como sugerencia persistente (si no es uno de los 3 base
+// ni ya está guardado), independiente de si el componente que lo usó se borra después.
+function recordarTipoComponenteCustom(tipo){
+  if(!tipo) return;
+  if(TIPOS_COMPONENTE.includes(tipo)) return;
+  if(DB.tiposComponenteCustom.includes(tipo)) return;
+  DB.tiposComponenteCustom.push(tipo);
+  save();
+}
+function eliminarTipoComponenteCustom(tipo){
+  DB.tiposComponenteCustom = DB.tiposComponenteCustom.filter(t=>t!==tipo);
+  save();
+  const cont = document.getElementById('tipos-custom-chips');
+  if(cont) cont.innerHTML = renderChipsTiposCustom();
+}
+function renderChipsTiposCustom(){
+  if(!DB.tiposComponenteCustom.length) return '';
+  return `<div style="font-size:11px;color:var(--text3);margin-top:2px">Sugerencias guardadas: ${
+    DB.tiposComponenteCustom.map(t=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 4px 2px 8px;margin:2px 4px 2px 0">${escHtml(t)}<button onclick="eliminarTipoComponenteCustom('${escHtml(t).replace(/'/g,"\\'")}')" style="border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;padding:0 4px" title="Borrar sugerencia">✕</button></span>`).join('')
+  }</div>`;
 }
 
 function modalNuevoComponente(){
@@ -1392,6 +1416,7 @@ function modalNuevoComponente(){
       <datalist id="tipos-componente-datalist">
         ${tiposComponenteDisponibles().map(t=>`<option value="${escHtml(t)}">`).join('')}
       </datalist>
+      <div id="tipos-custom-chips">${renderChipsTiposCustom()}</div>
     </div>
     <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
     <div class="fgrid">
@@ -1426,6 +1451,7 @@ function guardarNuevoComponente(){
   if(!tipo){ alert('Ingresá el tipo de componente.'); return; }
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
+  recordarTipoComponenteCustom(tipo);
   crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
 }
@@ -1439,6 +1465,7 @@ function modalEditarComponente(uuid){
       <datalist id="tipos-componente-datalist">
         ${tiposComponenteDisponibles().map(t=>`<option value="${escHtml(t)}">`).join('')}
       </datalist>
+      <div id="tipos-custom-chips">${renderChipsTiposCustom()}</div>
     </div>
     <div class="fg"><label>Descripción</label><input type="text" id="f-desc" value="${escHtml(c.descripcion)}"></div>
     <div class="fgrid">
@@ -1471,6 +1498,7 @@ function guardarEdicionComponente(uuid){
   if(!tipo){ alert('Ingresá el tipo de componente.'); return; }
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
+  recordarTipoComponenteCustom(tipo);
   editarComponente(uuid, { tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
   cerrarModal(); goTo('componentes');
 }
