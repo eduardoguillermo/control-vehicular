@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.35';
+const VERSION = 'v0.37';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -266,6 +266,45 @@ function fmtFecha(iso){
 }
 function hoyISO(){ return new Date().toISOString(); }
 function sumar(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
+
+// ── REPORTE MENSUAL (km recorridos y gasto total por mes, para el gráfico) ──
+function primerYUltimoDiaMes(year, month){
+  const desde = new Date(year, month, 1).toISOString();
+  const hasta = new Date(year, month+1, 0, 23,59,59,999).toISOString();
+  return { desde, hasta };
+}
+// Km del odómetro al final de una fecha dada (el último conocido hasta ese momento)
+function kmAlFinDeFecha(vehiculoId, fechaISO){
+  const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
+  let km = v ? (v.km_inicial||0) : 0;
+  DB.cargas.filter(c=>c.vehiculoId===vehiculoId && c.fecha<=fechaISO).forEach(c=>{ if(c.km>km) km=c.km; });
+  DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha<=fechaISO).forEach(m=>{ if(m.kilometraje_realizado>km) km=m.kilometraje_realizado; });
+  return km;
+}
+function gastoTotalDelPeriodo(vehiculoId, desde, hasta){
+  const totalCombustible = sumar(DB.cargas.filter(c=>c.vehiculoId===vehiculoId && c.fecha>=desde && c.fecha<=hasta).map(c=>c.totalPagado));
+  const totalMantenimientos = sumar(DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=desde && m.fecha<=hasta).map(m=>m.costo||0));
+  const totalComponentes = sumar(DB.componentes.filter(c=>c.vehiculoId===vehiculoId && c.fecha_instalacion>=desde && c.fecha_instalacion<=hasta).map(c=>c.costo||0));
+  const totalVariablesExtra = sumar(DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=desde && g.fecha<=hasta).map(g=>g.monto));
+  const totalFijos = sumar(DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, desde, hasta)));
+  return totalCombustible + totalMantenimientos + totalComponentes + totalVariablesExtra + totalFijos;
+}
+function calcularReporteMensual(vehiculoId, mesesAtras=12){
+  const hoy = new Date();
+  const meses = [];
+  for(let i=mesesAtras-1; i>=0; i--){
+    const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+    const year = d.getFullYear(), month = d.getMonth();
+    const { desde, hasta } = primerYUltimoDiaMes(year, month);
+    const finMesAnterior = new Date(year, month, 0, 23,59,59,999).toISOString();
+    const kmFin = kmAlFinDeFecha(vehiculoId, hasta);
+    const kmInicioMes = kmAlFinDeFecha(vehiculoId, finMesAnterior);
+    const kmDelMes = Math.max(0, kmFin - kmInicioMes);
+    const gasto = gastoTotalDelPeriodo(vehiculoId, desde, hasta);
+    meses.push({ label: d.toLocaleDateString('es-AR', {month:'short', year:'2-digit'}), year, month, kmDelMes, gasto });
+  }
+  return meses;
+}
 
 // ── VEHÍCULOS ─────────────────────────────────────────────────────────────────
 function vehiculoActivo(){
@@ -853,7 +892,7 @@ function cerrarModalVencimientos(){
 let _currentView = 'dashboard';
 const TITULOS = {
   dashboard: 'Dashboard', combustible: 'Combustible', mantenimientos: 'Mantenimientos',
-  componentes: 'Componentes', gastos: 'Gastos', vehiculos: 'Vehículos', backup: 'Backup'
+  componentes: 'Componentes', gastos: 'Gastos', reportes: 'Reportes', vehiculos: 'Vehículos', backup: 'Backup'
 };
 
 function toggleNav(){
@@ -881,7 +920,7 @@ function btnAyuda(ancla){
 }
 const ANCLAS_AYUDA = {
   dashboard: 'dashboard', combustible: 'combustible', mantenimientos: 'mantenimientos',
-  componentes: 'componentes', gastos: 'gastos', vehiculos: 'vehiculos', backup: 'backup'
+  componentes: 'componentes', gastos: 'gastos', reportes: 'reportes', vehiculos: 'vehiculos', backup: 'backup'
 };
 
 function goTo(view){
@@ -906,7 +945,7 @@ function goTo(view){
 
   const fn = {
     dashboard: renderDashboard, combustible: renderCombustible, mantenimientos: renderMantenimientos,
-    componentes: renderComponentes, gastos: renderGastos, vehiculos: renderVehiculos, backup: renderBackup
+    componentes: renderComponentes, gastos: renderGastos, reportes: renderReportes, vehiculos: renderVehiculos, backup: renderBackup
   }[view];
   if(fn) fn();
 }
@@ -1684,6 +1723,41 @@ function guardarNuevoGastoVariable(){
 }
 
 // ── VISTA: VEHÍCULOS ──────────────────────────────────────────────────────────
+// ── VISTA: REPORTES ──────────────────────────────────────────────────────────
+function renderReportes(){
+  const v = vehiculoActivo();
+  const datos = calcularReporteMensual(v.uuid, 12);
+  const maxKm = Math.max(...datos.map(d=>d.kmDelMes), 1);
+  const maxGasto = Math.max(...datos.map(d=>d.gasto), 1);
+  const hoy = new Date();
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="ch"><div class="ct">📈 Km y gasto por mes</div></div>
+      <div class="card-body">
+        <div class="barchart-legend">
+          <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#3b82f6"></span>Km recorridos</span>
+          <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:var(--primary)"></span>Gasto total</span>
+          <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:repeating-linear-gradient(45deg,#8b949e,#8b949e 3px,var(--border) 3px,var(--border) 6px)"></span>Mes en curso</span>
+        </div>
+        <div class="barchart-combo">
+          ${datos.map(d=>{
+            const enCurso = d.year===hoy.getFullYear() && d.month===hoy.getMonth();
+            return `<div class="barchart-combo-col">
+              <div class="barchart-combo-bars">
+                <div class="barchart-combo-bar barchart-combo-bar-km ${enCurso?'en-curso':''}" style="height:${(d.kmDelMes/maxKm*100)}%" title="${d.kmDelMes.toLocaleString('es-AR')} km"></div>
+                <div class="barchart-combo-bar barchart-combo-bar-gasto ${enCurso?'en-curso':''}" style="height:${(d.gasto/maxGasto*100)}%" title="${fmtMoney(d.gasto)}"></div>
+              </div>
+              <div class="barchart-combo-label ${enCurso?'en-curso':''}">${d.label}${enCurso?' ●':''}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <p class="text3" style="font-size:11px;margin-top:10px;text-align:center">El mes en curso es un dato parcial: la barra se va a ir agrandando a medida que cargues combustible y gastos.</p>
+      </div>
+    </div>
+  `;
+}
+
 function renderVehiculos(){
   document.getElementById('pacts').innerHTML = `<button class="btn btn-p btn-sm" onclick="modalNuevoVehiculo()">+ Nuevo vehículo</button>`;
   document.getElementById('content').innerHTML = `
