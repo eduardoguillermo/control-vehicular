@@ -334,7 +334,7 @@
     <ul>
       <li><b>Kilometraje actual</b> — se sugiere automáticamente el último conocido.</li>
       <li><b>Marca</b> — Axion, YPF, Shell u Otras.</li>
-      <li><b>Tipo</b> — Super o Prime.</li>
+      <li><b>Tipo</b> — Super o Premium.</li>
       <li><b>Litros</b>, <b>Costo por litro</b> y <b>Total pagado</b> — se calculan solos entre sí: si cargás dos de los tres, el tercero se completa automáticamente (litros + precio/L → total, o litros + total → precio/L). El que estés tipeando en ese momento nunca se pisa solo.</li>
       <li><b>¿Tanque lleno?</b> — arranca tildado por default (para el caso normal de siempre llenar el tanque); destildalo solo en cargas parciales.</li>
     </ul>
@@ -362,6 +362,7 @@
     <h2>🔨 A demanda</h2>
     <p>Para todo lo puntual que <b>no</b> sigue un patrón fijo de km: cambio de lámpara, alineación y balanceo, lavado, escobillas, reparaciones eléctricas, etc.</p>
     <p>Se cargan con un nombre libre (hay sugerencias, pero podés tipear cualquier cosa), kilometraje, costo y notas. No generan alertas futuras — quedan en el historial y suman al costo por km igual que cualquier otro mantenimiento.</p>
+    <div class="note">El <b>costo es obligatorio</b> en los dos tipos (poné 0 si fue sin cargo, pero no se puede dejar vacío) — así el costo por km nunca queda subestimado por un olvido. La <b>fecha de realización</b> también es editable, por si estás cargando un service que hiciste hace un tiempo y no fue "hoy".</div>
     <div class="tip">Ambos tipos (programados y a demanda) aparecen juntos en el mismo historial, con la etiqueta <code>(a demanda)</code> para diferenciar los que no tienen recurrencia.</div>
   </div>
 
@@ -382,9 +383,19 @@
     </table>
     <p>Podés cargar uno solo, o los dos a la vez — en ese caso la app usa el que esté <b>más avanzado</b> (el que se vaya a cumplir primero) para la barra de progreso y para la alerta.</p>
     <ul>
-      <li>Al llegar al 90% de cualquiera de los dos criterios, salta una alerta al cargar combustible.</li>
+      <li>Al cargar o editar un componente, ingresás también su <b>fecha de instalación</b> (no siempre es "hoy" — útil para cargar algo que instalaste hace un tiempo). Si ese dato es aproximado, marcá el check "es estimado".</li>
+      <li>Al llegar al 90% de cualquiera de los dos criterios, salta una alerta al cargar combustible. Para lo que vence por tiempo, el mensaje dice <b>"faltan X semanas"</b> (o "vencido hace X semanas"), igual que los mantenimientos dicen "faltan X km".</li>
       <li>Cuando lo reemplazás, queda en el historial con la vida útil real que tuvo (en km y/o en meses, según corresponda), comparada contra la estimada, y el costo por km de ese componente en particular.</li>
     </ul>
+    <h2>✎ Editar vs. 🔄 Reemplazar</h2>
+    <p>Son dos acciones distintas, no confundir:</p>
+    <table>
+      <tr><th>Acción</th><th>Cuándo usarla</th></tr>
+      <tr><td><b>✎ Editar</b></td><td>Corregir un dato mal cargado (costo, fecha, km, vida útil) sin dar de baja el componente ni tocar el historial</td></tr>
+      <tr><td><b>🔄 Reemplazar</b></td><td>Cuando efectivamente cambiaste la pieza física — da de baja el actual (queda en el historial) y crea uno nuevo</td></tr>
+    </table>
+    <h2>Tipo de componente</h2>
+    <p>El campo <b>Tipo</b> no es una lista cerrada: podés elegir Neumáticos, Batería u Otro, o escribir directamente uno nuevo (ej: "Filtro de combustible", "Correa de distribución") y queda guardado como sugerencia para la próxima vez. Debajo del campo aparecen chips con los tipos personalizados que agregaste, cada uno con una ✕ para borrarlo si ya no lo necesitás — los 3 tipos base no se pueden borrar.</p>
   </div>
 
   <div class="section" id="gastos">
