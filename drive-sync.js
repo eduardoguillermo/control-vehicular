@@ -15,6 +15,7 @@ const DriveSync = (() => {
   let folderId = null;
   let backupFileId = null;
   let renewTimer = null;
+  let onTokenCallback = null; // se llama cada vez que se consigue un token (init O conectar), no solo la primera vez
   const TOKEN_KEY = 'cveh_drive_token';
 
   function log(...args) { console.log('[DriveSync]', ...args); }
@@ -49,6 +50,7 @@ const DriveSync = (() => {
           guardarToken(accessToken, resp.expires_in || 3600);
           programarRenovacion();
           if (onReady) onReady();
+          if (onTokenCallback) onTokenCallback();
         },
         error_callback: (err) => { log('Intento de token falló (silencioso):', err && err.type); }
       });
@@ -178,6 +180,7 @@ const DriveSync = (() => {
   return {
     init, conectar, forzarReconexion,
     subirBackup, bajarBackup,
+    onToken(fn){ onTokenCallback = fn; },
     get conectado() { return !!accessToken; }
   };
 })();
