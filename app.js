@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.37';
+const VERSION = 'v0.43';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -16,6 +16,7 @@ const SUGERENCIAS_MANTENIMIENTO_DEMANDA = [
 ];
 const UMBRAL_KM_AVISO_VENCIMIENTO = 500; // avisar en el modal si faltan <= 500km para un mantenimiento
 const UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // avisar si un componente llegó al 80% de su vida útil
+const FECHA_PISO_REPORTES = new Date(2026, 6, 1); // el gráfico de Reportes nunca muestra meses anteriores a julio 2026
 
 // ── DB ────────────────────────────────────────────────────────────────────────
 let DB = {
@@ -289,10 +290,29 @@ function gastoTotalDelPeriodo(vehiculoId, desde, hasta){
   const totalFijos = sumar(DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, desde, hasta)));
   return totalCombustible + totalMantenimientos + totalComponentes + totalVariablesExtra + totalFijos;
 }
-function calcularReporteMensual(vehiculoId, mesesAtras=12){
+// Fecha más antigua con algún dato cargado para este vehículo (primera carga,
+// mantenimiento, gasto, componente, o el inicio de seguimiento del vehículo).
+function primeraFechaConDatos(vehiculoId){
+  const fechas = [];
+  // No usamos fecha_inicio_seguimiento del vehículo a propósito: es metadata
+  // de cuándo se creó el registro, no necesariamente cuándo arrancaron los
+  // datos reales. El reporte solo debe empezar donde hay carga/gasto real.
+  DB.cargas.filter(c=>c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha));
+  DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).forEach(m=>fechas.push(m.fecha));
+  DB.componentes.filter(c=>c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha_instalacion));
+  DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha));
+  DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha_inicio));
+  if(!fechas.length) return new Date();
+  fechas.sort();
+  return new Date(fechas[0]);
+}
+function calcularReporteMensual(vehiculoId){
   const hoy = new Date();
+  let inicio = primeraFechaConDatos(vehiculoId);
+  if(inicio < FECHA_PISO_REPORTES) inicio = FECHA_PISO_REPORTES;
+  const mesesTotales = Math.max(1, (hoy.getFullYear()-inicio.getFullYear())*12 + (hoy.getMonth()-inicio.getMonth()) + 1);
   const meses = [];
-  for(let i=mesesAtras-1; i>=0; i--){
+  for(let i=mesesTotales-1; i>=0; i--){
     const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
     const year = d.getFullYear(), month = d.getMonth();
     const { desde, hasta } = primerYUltimoDiaMes(year, month);
@@ -756,8 +776,14 @@ function mesesEntre(desde, hasta){
   return Math.max((h.getFullYear()-d.getFullYear())*12 + (h.getMonth()-d.getMonth()) + (h.getDate()>=d.getDate()?0:-1)+1, 0) || 1;
 }
 function prorratearGastoFijo(gasto, desde, hasta){
-  const meses = mesesEntre(desde, hasta);
+  // Nunca contar antes de que el gasto fijo exista (su fecha_inicio).
+  const inicioGasto = new Date(gasto.fecha_inicio);
+  const desdeEfectivo = inicioGasto > new Date(desde) ? gasto.fecha_inicio : desde;
+  if(new Date(desdeEfectivo) > new Date(hasta)) return 0; // el gasto empieza después del rango pedido
+
+  const meses = mesesEntre(desdeEfectivo, hasta);
   if(gasto.periodicidad === 'mensual') return gasto.monto * meses;
+  if(gasto.periodicidad === 'bimestral') return (gasto.monto/2) * meses;
   if(gasto.periodicidad === 'anual') return (gasto.monto/12) * meses;
   if(gasto.periodicidad === 'unico'){
     const f = new Date(gasto.fecha_inicio);
@@ -787,9 +813,11 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
   const totalVariablesExtra = sumar(
     DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=fechaInicio && g.fecha<=fechaFin).map(g=>g.monto)
   );
-  const totalFijos = sumar(
-    DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, fechaInicio, fechaFin))
-  );
+  const gastosFijosDelVehiculo = DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId);
+  const desgloseFijos = gastosFijosDelVehiculo
+    .map(g => ({ tipo: g.tipo, periodicidad: g.periodicidad, monto: g.monto, aportado: prorratearGastoFijo(g, fechaInicio, fechaFin) }))
+    .filter(x => x.aportado > 0);
+  const totalFijos = sumar(desgloseFijos.map(x=>x.aportado));
 
   const totalVariable = totalCombustible + totalMantenimientos + totalComponentes + totalVariablesExtra;
   const gastoTotal = totalVariable + totalFijos;
@@ -798,7 +826,7 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
     kmRecorridos, kmInicio, kmFin,
     costoPorKmTotal: gastoTotal / kmRecorridos,
     costoPorKmVariable: totalVariable / kmRecorridos,
-    desglose: { totalCombustible, totalMantenimientos, totalComponentes, totalVariablesExtra, totalFijos, gastoTotal }
+    desglose: { totalCombustible, totalMantenimientos, totalComponentes, totalVariablesExtra, totalFijos, gastoTotal, desgloseFijos }
   };
 }
 
@@ -1644,6 +1672,9 @@ function actualizarCostoKm(){
         <tr><td>Componentes (neumáticos/batería)</td><td>${fmtMoney(r.desglose.totalComponentes)}</td></tr>
         <tr><td>Gastos variables extra</td><td>${fmtMoney(r.desglose.totalVariablesExtra)}</td></tr>
         <tr><td>Gastos fijos (prorrateados)</td><td>${fmtMoney(r.desglose.totalFijos)}</td></tr>
+        ${r.desglose.desgloseFijos.length ? r.desglose.desgloseFijos.map(x=>`
+        <tr><td class="text3" style="font-size:11px;padding-left:22px">↳ ${x.tipo} (${x.periodicidad}, ${fmtMoney(x.monto)})</td><td class="text3" style="font-size:11px">${fmtMoney(x.aportado)}</td></tr>
+        `).join('') : ''}
         <tr><td><b>Total</b></td><td><b>${fmtMoney(r.desglose.gastoTotal)}</b></td></tr>
       </tbody></table>
     </div>
@@ -1676,7 +1707,7 @@ function modalNuevoGastoFijo(){
     <div class="fg"><label>Tipo</label><select id="f-tipo">${TIPOS_GASTO_FIJO.map(t=>`<option>${t}</option>`).join('')}</select></div>
     <div class="fgrid">
       <div class="fg"><label>Monto</label><input type="number" inputmode="decimal" id="f-monto" step="0.01"></div>
-      <div class="fg"><label>Periodicidad</label><select id="f-period"><option value="mensual">Mensual</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
+      <div class="fg"><label>Periodicidad</label><select id="f-period"><option value="mensual">Mensual</option><option value="bimestral">Bimestral</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
     </div>
     <div class="fg"><label>Fecha de inicio</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
   `, `
@@ -1726,7 +1757,7 @@ function guardarNuevoGastoVariable(){
 // ── VISTA: REPORTES ──────────────────────────────────────────────────────────
 function renderReportes(){
   const v = vehiculoActivo();
-  const datos = calcularReporteMensual(v.uuid, 12);
+  const datos = calcularReporteMensual(v.uuid);
   const maxKm = Math.max(...datos.map(d=>d.kmDelMes), 1);
   const maxGasto = Math.max(...datos.map(d=>d.gasto), 1);
   const hoy = new Date();
