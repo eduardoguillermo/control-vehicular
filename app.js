@@ -14,8 +14,8 @@ const SUGERENCIAS_MANTENIMIENTO_DEMANDA = [
   'Cambio de lámpara','Alineación y balanceo','Lavado','Cambio de escobillas',
   'Revisión de frenos','Reparación de aire acondicionado','Reparación eléctrica','Otro'
 ];
-const DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO = 500; // valor de fábrica: avisar si faltan <= 500km para un mantenimiento
-const DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // valor de fábrica: avisar si un componente llegó al 80% de su vida útil
+const UMBRAL_KM_AVISO_VENCIMIENTO = 500; // avisar en el modal si faltan <= 500km para un mantenimiento
+const UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // avisar si un componente llegó al 80% de su vida útil
 const FECHA_PISO_REPORTES = new Date(2026, 6, 1); // el gráfico de Reportes nunca muestra meses anteriores a julio 2026
 
 // ── DB ────────────────────────────────────────────────────────────────────────
@@ -47,8 +47,6 @@ function normalizarDB(){
   if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
   if(!DB.config) DB.config = {};
   if(DB.config.vehiculoActivo === undefined) DB.config.vehiculoActivo = null;
-  if(!DB.config.umbralKmAvisoVencimiento) DB.config.umbralKmAvisoVencimiento = DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO;
-  if(!DB.config.umbralPorcentajeAvisoVencimiento) DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
 
   // Backfill uuid/lastModified para todas las colecciones (necesario para merge Drive)
   ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
@@ -385,6 +383,31 @@ function cargasVehiculo(vehiculoId){
   return DB.cargas.filter(c=>c.vehiculoId===vehiculoId).sort((a,b)=> a.km - b.km);
 }
 
+// Recalcula rendimiento_calculado de TODAS las cargas de un vehículo desde
+// cero, en orden de km. Es la única fuente de verdad para este cálculo —
+// se llama después de crear, editar o eliminar cualquier carga, para que
+// la cadena de "desde el último tanque lleno" quede siempre consistente.
+function recalcularRendimientosVehiculo(vehiculoId){
+  const cargas = cargasVehiculo(vehiculoId); // ya viene ordenada por km
+  let ultimoLleno = null;
+  cargas.forEach(c => {
+    c.rendimiento_calculado = null;
+    c.litros_acumulados_desde_ultimo_lleno = null;
+    if(c.tanqueLleno){
+      if(ultimoLleno){
+        const intermedias = cargas.filter(x => x.km > ultimoLleno.km && x.km <= c.km);
+        const litrosAcumulados = sumar(intermedias.map(x=>x.litros));
+        const kmRecorridos = c.km - ultimoLleno.km;
+        if(litrosAcumulados > 0 && kmRecorridos > 0){
+          c.rendimiento_calculado = kmRecorridos / litrosAcumulados;
+          c.litros_acumulados_desde_ultimo_lleno = litrosAcumulados;
+        }
+      }
+      ultimoLleno = c;
+    }
+  });
+}
+
 function registrarCarga(datos){
   const vehiculoId = datos.vehiculoId;
   const km = Number(datos.km);
@@ -398,27 +421,13 @@ function registrarCarga(datos){
   const nuevaCarga = tocar({
     uuid: cvNuevoUUID(),
     vehiculoId, km, litros, costoLitro, totalPagado, tanqueLleno, tipoCombustible, marca,
-    fecha: hoyISO(),
+    fecha: datos.fecha || hoyISO(),
     rendimiento_calculado: null,
     litros_acumulados_desde_ultimo_lleno: null
   });
 
-  if(tanqueLleno){
-    const cargasOrdenadas = cargasVehiculo(vehiculoId); // no incluye la nueva todavía
-    const ultimoLleno = [...cargasOrdenadas].reverse().find(c => c.tanqueLleno);
-
-    if(ultimoLleno){
-      const intermedias = cargasOrdenadas.filter(c => c.km > ultimoLleno.km && c.km <= km);
-      const litrosAcumulados = sumar(intermedias.map(c=>c.litros)) + litros;
-      const kmRecorridos = km - ultimoLleno.km;
-      if(litrosAcumulados > 0 && kmRecorridos > 0){
-        nuevaCarga.rendimiento_calculado = kmRecorridos / litrosAcumulados;
-        nuevaCarga.litros_acumulados_desde_ultimo_lleno = litrosAcumulados;
-      }
-    }
-  }
-
   DB.cargas.push(nuevaCarga);
+  recalcularRendimientosVehiculo(vehiculoId);
   save();
 
   // Cruce con mantenimientos y componentes al actualizar el km
@@ -427,9 +436,35 @@ function registrarCarga(datos){
   return { carga: nuevaCarga, alertas: [...alertasMant, ...alertasComp] };
 }
 
+// Edita una carga existente y recalcula toda la cadena de rendimientos del
+// vehículo (una carga editada puede afectar el rendimiento de las siguientes).
+function editarCarga(uuid, datos){
+  const c = DB.cargas.find(x=>x.uuid===uuid);
+  if(!c) return null;
+  Object.assign(c, {
+    km: Number(datos.km),
+    litros: Number(datos.litros),
+    costoLitro: Number(datos.costoLitro),
+    totalPagado: Number(datos.totalPagado),
+    tanqueLleno: !!datos.tanqueLleno,
+    tipoCombustible: datos.tipoCombustible || '',
+    marca: datos.marca || '',
+    fecha: datos.fecha || c.fecha
+  });
+  tocar(c);
+  recalcularRendimientosVehiculo(c.vehiculoId);
+  save();
+  const alertasMant = verificarMantenimientos(c.vehiculoId, kmActualVehiculo(c.vehiculoId));
+  const alertasComp = verificarComponentes(c.vehiculoId, kmActualVehiculo(c.vehiculoId));
+  return { carga: c, alertas: [...alertasMant, ...alertasComp] };
+}
+
 function eliminarCarga(uuid){
-  if(!confirm('¿Eliminar esta carga? Puede afectar el cálculo de rendimiento de cargas posteriores.')) return;
-  DB.cargas = DB.cargas.filter(c=>c.uuid!==uuid);
+  if(!confirm('¿Eliminar esta carga? Se va a recalcular el rendimiento de las cargas posteriores.')) return;
+  const c = DB.cargas.find(x=>x.uuid===uuid);
+  const vehiculoId = c ? c.vehiculoId : null;
+  DB.cargas = DB.cargas.filter(x=>x.uuid!==uuid);
+  if(vehiculoId) recalcularRendimientosVehiculo(vehiculoId);
   save();
   goTo('combustible');
 }
@@ -840,7 +875,7 @@ function calcularVencimientos(vehiculoId){
   DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId).forEach(p => {
     const proximoKm = proximoKmMantenimiento(p);
     const faltan = proximoKm - km;
-    if(faltan <= DB.config.umbralKmAvisoVencimiento){
+    if(faltan <= UMBRAL_KM_AVISO_VENCIMIENTO){
       items.push({
         tipo: 'mantenimiento', id: p.uuid, nombre: p.nombre_servicio,
         detalle: faltan <= 0 ? `Vencido hace ${fmtKm(-faltan)}` : `Faltan ${fmtKm(faltan)}`,
@@ -853,7 +888,7 @@ function calcularVencimientos(vehiculoId){
   componentesVehiculo(vehiculoId, true).forEach(c => {
     if(!c.vida_util_estimada_km && !c.vida_util_meses) return;
     const e = estadoComponente(c, km);
-    if(e.porcentajeUsado >= DB.config.umbralPorcentajeAvisoVencimiento){
+    if(e.porcentajeUsado >= UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO){
       const detalle = e.criterioLimitante === 'tiempo'
         ? (e.semanasRestantes <= 0 ? `Vencido hace ${fmtSemanas(e.semanasRestantes)}` : `Faltan ${fmtSemanas(e.semanasRestantes)}`)
         : (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtKm(e.proximoCambioEstimadoKm)}` : `Vence a los ${fmtKm(e.proximoCambioEstimadoKm)}`);
@@ -922,7 +957,7 @@ function cerrarModalVencimientos(){
 let _currentView = 'dashboard';
 const TITULOS = {
   dashboard: 'Dashboard', combustible: 'Combustible', mantenimientos: 'Mantenimientos',
-  componentes: 'Componentes', gastos: 'Gastos', reportes: 'Reportes', vehiculos: 'Vehículos', backup: 'Backup', ajustes: 'Ajustes'
+  componentes: 'Componentes', gastos: 'Gastos', reportes: 'Reportes', vehiculos: 'Vehículos', backup: 'Backup'
 };
 
 function toggleNav(){
@@ -950,7 +985,7 @@ function btnAyuda(ancla){
 }
 const ANCLAS_AYUDA = {
   dashboard: 'dashboard', combustible: 'combustible', mantenimientos: 'mantenimientos',
-  componentes: 'componentes', gastos: 'gastos', reportes: 'reportes', vehiculos: 'vehiculos', backup: 'backup', ajustes: 'ajustes'
+  componentes: 'componentes', gastos: 'gastos', reportes: 'reportes', vehiculos: 'vehiculos', backup: 'backup'
 };
 
 function goTo(view){
@@ -964,7 +999,7 @@ function goTo(view){
   actualizarSelectorVehiculo();
 
   const v = vehiculoActivo();
-  if(!v && view !== 'vehiculos' && view !== 'backup' && view !== 'ajustes'){
+  if(!v && view !== 'vehiculos' && view !== 'backup'){
     document.getElementById('content').innerHTML = `
       <div class="card"><div class="card-body" style="text-align:center;padding:40px">
         <div style="font-size:14px;margin-bottom:12px">Todavía no cargaste ningún vehículo.</div>
@@ -975,7 +1010,7 @@ function goTo(view){
 
   const fn = {
     dashboard: renderDashboard, combustible: renderCombustible, mantenimientos: renderMantenimientos,
-    componentes: renderComponentes, gastos: renderGastos, reportes: renderReportes, vehiculos: renderVehiculos, backup: renderBackup, ajustes: renderAjustes
+    componentes: renderComponentes, gastos: renderGastos, reportes: renderReportes, vehiculos: renderVehiculos, backup: renderBackup
   }[view];
   if(fn) fn();
 }
@@ -1126,7 +1161,10 @@ function renderCombustible(){
         <td>${fmtMoney(c.totalPagado)}</td>
         <td>${c.tanqueLleno?'✅':'—'}</td>
         <td>${c.rendimiento_calculado?fmtNum(c.rendimiento_calculado,1)+' km/L':'—'}</td>
-        <td><button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="modalEditarCarga('${c.uuid}')">✎</button>
+          <button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button>
+        </td>
       </tr>`).join('')}
       </tbody></table>` : `<div class="empty">Sin cargas todavía.</div>`}
     </div></div>
@@ -1202,6 +1240,51 @@ function guardarNuevaCarga(){
   }
   if(alertas.length){
     setTimeout(()=>alert(alertas.map(a=>a.mensaje).join('\n\n')), carga.rendimiento_calculado?300:100);
+  }
+}
+
+function modalEditarCarga(uuid){
+  const c = DB.cargas.find(x=>x.uuid===uuid);
+  if(!c) return;
+  abrirModal('✎ Editar carga de combustible', `
+    <div class="fgrid">
+      <div class="fg"><label>Kilometraje</label><input type="number" inputmode="numeric" id="f-km" value="${c.km}" onfocus="this.select()"></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="f-fecha" value="${c.fecha.slice(0,10)}"></div>
+    </div>
+    <div class="fgrid">
+      <div class="fg"><label>Marca</label><select id="f-marca">${MARCAS_COMBUSTIBLE.map(m=>`<option ${m===c.marca?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="fg"><label>Tipo</label><select id="f-tipoCombustible">${TIPOS_COMBUSTIBLE.map(t=>`<option ${t===c.tipoCombustible?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    <div class="fgrid">
+      <div class="fg"><label>Litros cargados</label><input type="number" inputmode="decimal" id="f-litros" step="0.01" value="${c.litros}" onfocus="this.select()" onchange="recalcularCarga('f-','litros')"></div>
+      <div class="fg"><label>Costo por litro</label><input type="number" inputmode="decimal" id="f-costoLitro" step="0.01" value="${c.costoLitro}" onfocus="this.select()" onchange="recalcularCarga('f-','costoLitro')"></div>
+    </div>
+    <div class="fg"><label>Total pagado</label><input type="number" inputmode="decimal" id="f-total" step="0.01" value="${c.totalPagado}" onfocus="this.select()" onchange="recalcularCarga('f-','total')"></div>
+    <div class="fg" style="flex-direction:row;align-items:center;gap:10px;margin-top:6px">
+      <input type="checkbox" id="f-lleno" ${c.tanqueLleno?'checked':''} style="width:18px;height:18px;accent-color:var(--primary)">
+      <label style="text-transform:none;font-size:13px">⛽ ¿Tanque lleno?</label>
+    </div>
+    <div class="note" style="margin-top:10px;font-size:11px">Al guardar se recalcula el rendimiento de esta carga y de las posteriores.</div>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarEdicionCarga('${uuid}')">Guardar</button>
+  `);
+}
+function guardarEdicionCarga(uuid){
+  const km = Number(document.getElementById('f-km').value);
+  const fecha = new Date(document.getElementById('f-fecha').value).toISOString();
+  const marca = document.getElementById('f-marca').value;
+  const tipoCombustible = document.getElementById('f-tipoCombustible').value;
+  const litros = Number(document.getElementById('f-litros').value);
+  const costoLitro = Number(document.getElementById('f-costoLitro').value);
+  const totalPagado = Number(document.getElementById('f-total').value);
+  const tanqueLleno = document.getElementById('f-lleno').checked;
+  if(!km || !litros || !totalPagado){ alert('Completá km, litros y total.'); return; }
+  cerrarModal();
+  const resultado = editarCarga(uuid, { km, fecha, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno });
+  goTo('combustible');
+  if(resultado && resultado.alertas.length){
+    setTimeout(()=>alert(resultado.alertas.map(a=>a.mensaje).join('\n\n')), 100);
   }
 }
 
@@ -1861,48 +1944,6 @@ function modalEditarVehiculo(uuid){
 }
 
 // ── VISTA: BACKUP ──────────────────────────────────────────────────────────────
-// ── VISTA: AJUSTES ───────────────────────────────────────────────────────────
-function renderAjustes(){
-  document.getElementById('content').innerHTML = `
-    <div class="card">
-      <div class="ch"><div class="ct">🔔 Sensibilidad de alertas de vencimiento</div></div>
-      <div class="card-body">
-        <p class="text2" style="margin-bottom:14px;font-size:12px">Definen cuándo aparece el aviso de "próximo a vencer" al abrir la app. Valores más altos avisan con más anticipación.</p>
-        <div class="fgrid">
-          <div class="fitem">
-            <label>Avisar mantenimiento si faltan (km)</label>
-            <input type="number" id="aj-umbral-km" min="0" step="10" value="${DB.config.umbralKmAvisoVencimiento}">
-          </div>
-          <div class="fitem">
-            <label>Avisar componente al llegar a (% de vida útil)</label>
-            <input type="number" id="aj-umbral-pct" min="1" max="100" step="1" value="${DB.config.umbralPorcentajeAvisoVencimiento}">
-          </div>
-        </div>
-        <button class="btn btn-p" style="margin-top:12px" onclick="guardarAjustesAlertas()">💾 Guardar</button>
-        <button class="btn" style="margin-top:12px" onclick="restaurarAjustesAlertasDefault()">↺ Restaurar valores de fábrica (500km / 80%)</button>
-      </div>
-    </div>
-  `;
-}
-
-function guardarAjustesAlertas(){
-  const km = Number(document.getElementById('aj-umbral-km').value);
-  const pct = Number(document.getElementById('aj-umbral-pct').value);
-  if(!km || km < 0){ alert('Ingresá un valor de km válido.'); return; }
-  if(!pct || pct < 1 || pct > 100){ alert('Ingresá un porcentaje entre 1 y 100.'); return; }
-  DB.config.umbralKmAvisoVencimiento = km;
-  DB.config.umbralPorcentajeAvisoVencimiento = pct;
-  save();
-  alert('✅ Ajustes guardados.');
-}
-
-function restaurarAjustesAlertasDefault(){
-  DB.config.umbralKmAvisoVencimiento = DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO;
-  DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
-  save();
-  renderAjustes();
-}
-
 function renderBackup(){
   const conectado = typeof DriveSync !== 'undefined' && DriveSync.conectado;
   const snaps = cvCargarSnaps();
