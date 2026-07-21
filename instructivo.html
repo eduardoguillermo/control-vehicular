@@ -408,7 +408,15 @@
       </div>
     </div>
     <h2>Gastos fijos</h2>
-    <p>Seguro, patente, cochera, alarma — cosas que pagás tengas el auto parado o lo uses todos los días. Se cargan con una periodicidad (mensual, anual o único) y se prorratean automáticamente según el rango de fechas que estés mirando.</p>
+    <p>Seguro, patente, cochera, alarma — cosas que pagás tengas el auto parado o lo uses todos los días. Se cargan con una periodicidad y se prorratean automáticamente según el rango de fechas que estés mirando:</p>
+    <table>
+      <tr><th>Periodicidad</th><th>Cómo se prorratea</th></tr>
+      <tr><td><b>Mensual</b></td><td>monto × cantidad de meses en el rango</td></tr>
+      <tr><td><b>Bimestral</b></td><td>(monto ÷ 2) × cantidad de meses en el rango — ej: la patente, que en Argentina suele pagarse cada 2 meses</td></tr>
+      <tr><td><b>Anual</b></td><td>(monto ÷ 12) × cantidad de meses en el rango</td></tr>
+      <tr><td><b>Único</b></td><td>el monto completo, una sola vez, en el mes de su fecha de inicio</td></tr>
+    </table>
+    <div class="note">Un gasto fijo nunca se cuenta en meses <b>anteriores</b> a su fecha de inicio — si lo cargaste este mes, no aparece retroactivamente en meses pasados aunque el rango que estés mirando los incluya.</div>
     <h2>Gastos variables</h2>
     <p>Multas, peajes, estacionamiento, reparaciones no programadas. (El lavado quedó en Mantenimientos → A demanda, para no duplicar el criterio.)</p>
     <h2>Costo por kilómetro</h2>
@@ -418,6 +426,7 @@
       <tr><td><b>$/km total</b></td><td>Combustible + mantenimientos + neumáticos/batería + gastos variables + gastos fijos prorrateados</td></tr>
       <tr><td><b>$/km variable</b></td><td>Lo mismo pero sin los gastos fijos — cuánto te cuesta cada km que decidís manejar, útil para comparar contra otras opciones de transporte</td></tr>
     </table>
+    <p>Debajo del total de "Gastos fijos (prorrateados)" aparece el detalle de qué gasto fijo aportó cuánto en ese rango — útil para entender de dónde sale el número si no es obvio a simple vista.</p>
     <div class="note">El cálculo necesita al menos dos cargas de combustible dentro del rango elegido para saber cuántos km se recorrieron en ese período.</div>
   </div>
 
@@ -426,7 +435,7 @@
       <div class="section-icon">📈</div>
       <div>
         <div class="section-title">Reportes</div>
-        <div class="section-subtitle">Km y gasto por mes, últimos 12 meses</div>
+        <div class="section-subtitle">Km y gasto por mes, desde la primera carga</div>
       </div>
     </div>
     <p>Un gráfico de barras combinado del vehículo activo, con dos barras por mes:</p>
