@@ -14,8 +14,8 @@ const SUGERENCIAS_MANTENIMIENTO_DEMANDA = [
   'Cambio de lámpara','Alineación y balanceo','Lavado','Cambio de escobillas',
   'Revisión de frenos','Reparación de aire acondicionado','Reparación eléctrica','Otro'
 ];
-const UMBRAL_KM_AVISO_VENCIMIENTO = 500; // avisar en el modal si faltan <= 500km para un mantenimiento
-const UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // avisar si un componente llegó al 80% de su vida útil
+const DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO = 500; // valor de fábrica: avisar si faltan <= 500km para un mantenimiento
+const DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO = 80; // valor de fábrica: avisar si un componente llegó al 80% de su vida útil
 const FECHA_PISO_REPORTES = new Date(2026, 6, 1); // el gráfico de Reportes nunca muestra meses anteriores a julio 2026
 
 // ── DB ────────────────────────────────────────────────────────────────────────
@@ -47,6 +47,8 @@ function normalizarDB(){
   if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
   if(!DB.config) DB.config = {};
   if(DB.config.vehiculoActivo === undefined) DB.config.vehiculoActivo = null;
+  if(!DB.config.umbralKmAvisoVencimiento) DB.config.umbralKmAvisoVencimiento = DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO;
+  if(!DB.config.umbralPorcentajeAvisoVencimiento) DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
 
   // Backfill uuid/lastModified para todas las colecciones (necesario para merge Drive)
   ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
@@ -875,7 +877,7 @@ function calcularVencimientos(vehiculoId){
   DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId).forEach(p => {
     const proximoKm = proximoKmMantenimiento(p);
     const faltan = proximoKm - km;
-    if(faltan <= UMBRAL_KM_AVISO_VENCIMIENTO){
+    if(faltan <= DB.config.umbralKmAvisoVencimiento){
       items.push({
         tipo: 'mantenimiento', id: p.uuid, nombre: p.nombre_servicio,
         detalle: faltan <= 0 ? `Vencido hace ${fmtKm(-faltan)}` : `Faltan ${fmtKm(faltan)}`,
@@ -888,7 +890,7 @@ function calcularVencimientos(vehiculoId){
   componentesVehiculo(vehiculoId, true).forEach(c => {
     if(!c.vida_util_estimada_km && !c.vida_util_meses) return;
     const e = estadoComponente(c, km);
-    if(e.porcentajeUsado >= UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO){
+    if(e.porcentajeUsado >= DB.config.umbralPorcentajeAvisoVencimiento){
       const detalle = e.criterioLimitante === 'tiempo'
         ? (e.semanasRestantes <= 0 ? `Vencido hace ${fmtSemanas(e.semanasRestantes)}` : `Faltan ${fmtSemanas(e.semanasRestantes)}`)
         : (e.porcentajeUsado>=100 ? `Vencido — límite era ${fmtKm(e.proximoCambioEstimadoKm)}` : `Vence a los ${fmtKm(e.proximoCambioEstimadoKm)}`);
@@ -957,7 +959,7 @@ function cerrarModalVencimientos(){
 let _currentView = 'dashboard';
 const TITULOS = {
   dashboard: 'Dashboard', combustible: 'Combustible', mantenimientos: 'Mantenimientos',
-  componentes: 'Componentes', gastos: 'Gastos', reportes: 'Reportes', vehiculos: 'Vehículos', backup: 'Backup'
+  componentes: 'Componentes', gastos: 'Gastos', reportes: 'Reportes', vehiculos: 'Vehículos', backup: 'Backup', ajustes: 'Ajustes'
 };
 
 function toggleNav(){
@@ -985,7 +987,7 @@ function btnAyuda(ancla){
 }
 const ANCLAS_AYUDA = {
   dashboard: 'dashboard', combustible: 'combustible', mantenimientos: 'mantenimientos',
-  componentes: 'componentes', gastos: 'gastos', reportes: 'reportes', vehiculos: 'vehiculos', backup: 'backup'
+  componentes: 'componentes', gastos: 'gastos', reportes: 'reportes', vehiculos: 'vehiculos', backup: 'backup', ajustes: 'ajustes'
 };
 
 function goTo(view){
@@ -999,7 +1001,7 @@ function goTo(view){
   actualizarSelectorVehiculo();
 
   const v = vehiculoActivo();
-  if(!v && view !== 'vehiculos' && view !== 'backup'){
+  if(!v && view !== 'vehiculos' && view !== 'backup' && view !== 'ajustes'){
     document.getElementById('content').innerHTML = `
       <div class="card"><div class="card-body" style="text-align:center;padding:40px">
         <div style="font-size:14px;margin-bottom:12px">Todavía no cargaste ningún vehículo.</div>
@@ -1010,7 +1012,7 @@ function goTo(view){
 
   const fn = {
     dashboard: renderDashboard, combustible: renderCombustible, mantenimientos: renderMantenimientos,
-    componentes: renderComponentes, gastos: renderGastos, reportes: renderReportes, vehiculos: renderVehiculos, backup: renderBackup
+    componentes: renderComponentes, gastos: renderGastos, reportes: renderReportes, vehiculos: renderVehiculos, backup: renderBackup, ajustes: renderAjustes
   }[view];
   if(fn) fn();
 }
@@ -1944,6 +1946,48 @@ function modalEditarVehiculo(uuid){
 }
 
 // ── VISTA: BACKUP ──────────────────────────────────────────────────────────────
+// ── VISTA: AJUSTES ───────────────────────────────────────────────────────────
+function renderAjustes(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="ch"><div class="ct">🔔 Sensibilidad de alertas de vencimiento</div></div>
+      <div class="card-body">
+        <p class="text2" style="margin-bottom:14px;font-size:12px">Definen cuándo aparece el aviso de "próximo a vencer" al abrir la app. Valores más altos avisan con más anticipación.</p>
+        <div class="fgrid">
+          <div class="fitem">
+            <label>Avisar mantenimiento si faltan (km)</label>
+            <input type="number" id="aj-umbral-km" min="0" step="10" value="${DB.config.umbralKmAvisoVencimiento}">
+          </div>
+          <div class="fitem">
+            <label>Avisar componente al llegar a (% de vida útil)</label>
+            <input type="number" id="aj-umbral-pct" min="1" max="100" step="1" value="${DB.config.umbralPorcentajeAvisoVencimiento}">
+          </div>
+        </div>
+        <button class="btn btn-p" style="margin-top:12px" onclick="guardarAjustesAlertas()">💾 Guardar</button>
+        <button class="btn" style="margin-top:12px" onclick="restaurarAjustesAlertasDefault()">↺ Restaurar valores de fábrica (500km / 80%)</button>
+      </div>
+    </div>
+  `;
+}
+
+function guardarAjustesAlertas(){
+  const km = Number(document.getElementById('aj-umbral-km').value);
+  const pct = Number(document.getElementById('aj-umbral-pct').value);
+  if(!km || km < 0){ alert('Ingresá un valor de km válido.'); return; }
+  if(!pct || pct < 1 || pct > 100){ alert('Ingresá un porcentaje entre 1 y 100.'); return; }
+  DB.config.umbralKmAvisoVencimiento = km;
+  DB.config.umbralPorcentajeAvisoVencimiento = pct;
+  save();
+  alert('✅ Ajustes guardados.');
+}
+
+function restaurarAjustesAlertasDefault(){
+  DB.config.umbralKmAvisoVencimiento = DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO;
+  DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
+  save();
+  renderAjustes();
+}
+
 function renderBackup(){
   const conectado = typeof DriveSync !== 'undefined' && DriveSync.conectado;
   const snaps = cvCargarSnaps();
