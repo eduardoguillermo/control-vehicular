@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.34';
+const VERSION = 'v0.35';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -1871,6 +1871,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(typeof DriveSync !== 'undefined'){
     DriveSync.init(() => { console.log('Drive listo'); });
+    if(DriveSync.onToken){
+      DriveSync.onToken(() => {
+        // Se conectó (o se renovó el token): refrescar la vista actual para
+        // que "No conectado" pase a "Conectado" sin que el usuario tenga que
+        // hacer nada más.
+        if(!esMobile() || _modoAppCompleta) goTo(_currentView || 'backup');
+      });
+    }
   }
 
   // Safe-close: snapshot automático + Drive
