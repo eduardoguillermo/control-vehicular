@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.31';
+const VERSION = 'v0.32';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -1373,11 +1373,26 @@ function renderComponentes(){
   `;
 }
 
+// Tipos disponibles para el combobox: los 3 base + cualquier tipo custom
+// que el usuario haya escrito antes en otros componentes (así queda como
+// sugerencia la próxima vez, sin perder la posibilidad de escribir uno nuevo).
+function tiposComponenteDisponibles(){
+  const usados = DB.componentes.map(c=>c.tipo).filter(Boolean);
+  const set = new Set([...TIPOS_COMPONENTE, ...usados]);
+  return Array.from(set);
+}
+
 function modalNuevoComponente(){
   const v = vehiculoActivo();
   const kmSugerido = kmActualVehiculo(v.uuid);
   abrirModal('🛞 Nuevo componente', `
-    <div class="fg"><label>Tipo</label><select id="f-tipo">${TIPOS_COMPONENTE.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="fg">
+      <label>Tipo</label>
+      <input type="text" id="f-tipo" list="tipos-componente-datalist" placeholder="Ej: Neumáticos">
+      <datalist id="tipos-componente-datalist">
+        ${tiposComponenteDisponibles().map(t=>`<option value="${escHtml(t)}">`).join('')}
+      </datalist>
+    </div>
     <div class="fg"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: Bridgestone 195/65"></div>
     <div class="fgrid">
       <div class="fg"><label>Km de instalación</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
@@ -1400,7 +1415,7 @@ function modalNuevoComponente(){
 }
 function guardarNuevoComponente(){
   const v = vehiculoActivo();
-  const tipo = document.getElementById('f-tipo').value;
+  const tipo = document.getElementById('f-tipo').value.trim();
   const descripcion = document.getElementById('f-desc').value.trim();
   const km_instalacion = Number(document.getElementById('f-km').value);
   const fecha_instalacion = new Date(document.getElementById('f-fecha').value).toISOString();
@@ -1408,6 +1423,7 @@ function guardarNuevoComponente(){
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
   const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
+  if(!tipo){ alert('Ingresá el tipo de componente.'); return; }
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
   crearComponente({ vehiculoId: v.uuid, tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
@@ -1417,7 +1433,13 @@ function modalEditarComponente(uuid){
   const c = DB.componentes.find(x=>x.uuid===uuid);
   if(!c) return;
   abrirModal(`✎ Editar: ${escHtml(c.tipo)}`, `
-    <div class="fg"><label>Tipo</label><select id="f-tipo">${TIPOS_COMPONENTE.map(t=>`<option ${t===c.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="fg">
+      <label>Tipo</label>
+      <input type="text" id="f-tipo" list="tipos-componente-datalist" value="${escHtml(c.tipo)}">
+      <datalist id="tipos-componente-datalist">
+        ${tiposComponenteDisponibles().map(t=>`<option value="${escHtml(t)}">`).join('')}
+      </datalist>
+    </div>
     <div class="fg"><label>Descripción</label><input type="text" id="f-desc" value="${escHtml(c.descripcion)}"></div>
     <div class="fgrid">
       <div class="fg"><label>Km de instalación</label><input type="number" inputmode="numeric" id="f-km" value="${c.km_instalacion}" onfocus="this.select()"></div>
@@ -1438,7 +1460,7 @@ function modalEditarComponente(uuid){
   `);
 }
 function guardarEdicionComponente(uuid){
-  const tipo = document.getElementById('f-tipo').value;
+  const tipo = document.getElementById('f-tipo').value.trim();
   const descripcion = document.getElementById('f-desc').value.trim();
   const km_instalacion = Number(document.getElementById('f-km').value);
   const fecha_instalacion = new Date(document.getElementById('f-fecha').value).toISOString();
@@ -1446,6 +1468,7 @@ function guardarEdicionComponente(uuid){
   const costo = Number(document.getElementById('f-costo').value)||0;
   const vida_util_estimada_km = Number(document.getElementById('f-vidautil').value)||0;
   const vida_util_meses = Number(document.getElementById('f-vidautilmeses').value)||0;
+  if(!tipo){ alert('Ingresá el tipo de componente.'); return; }
   if(!km_instalacion){ alert('Ingresá el km de instalación.'); return; }
   if(!vida_util_estimada_km && !vida_util_meses){ alert('Ingresá al menos un criterio de vida útil: km o meses.'); return; }
   editarComponente(uuid, { tipo, descripcion, km_instalacion, fecha_instalacion, km_instalacion_estimado, costo, vida_util_estimada_km, vida_util_meses });
