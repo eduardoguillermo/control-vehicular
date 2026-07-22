@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.46';
+const VERSION = 'v0.47';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -61,6 +61,31 @@ function normalizarDB(){
   if(!DB.config.vehiculoActivo && DB.vehiculos.length){
     DB.config.vehiculoActivo = DB.vehiculos[0].uuid;
   }
+
+  // Auto-limpieza de cargas duplicadas: si dos cargas del mismo vehículo
+  // tienen el mismo km, son la misma carga real registrada dos veces (ej.
+  // cargada por separado en la PC y en el celu antes de sincronizar, cada
+  // una con su propio uuid). Nos quedamos con la más reciente. Corre en
+  // cada apertura de la app y después de cada sincronización con Drive.
+  DB.cargas = cvDedupCargas(DB.cargas);
+}
+
+function cvDedupCargas(cargas){
+  const vistos = new Map(); // 'vehiculoId|km' -> registro elegido
+  const resultado = [];
+  (cargas||[]).forEach(c => {
+    const clave = c.vehiculoId + '|' + c.km;
+    const previo = vistos.get(clave);
+    if(!previo){
+      vistos.set(clave, c);
+      resultado.push(c);
+    } else if((c.lastModified||0) > (previo.lastModified||0)){
+      const idx = resultado.indexOf(previo);
+      if(idx>=0) resultado[idx] = c;
+      vistos.set(clave, c);
+    }
+  });
+  return resultado;
 }
 
 function load(){
