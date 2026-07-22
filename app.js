@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.48';
+const VERSION = 'v0.49';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -218,7 +218,17 @@ function cvMergeColeccion(locales, remotos){
 
 async function cvSubirDrive(){
   if(typeof DriveSync === 'undefined' || !DriveSync.conectado) return;
-  try{ await DriveSync.subirBackup(DB); }
+  try{
+    const remoto = await DriveSync.bajarBackup();
+    if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
+      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+        .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
+      if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
+      normalizarDB();
+      localStorage.setItem(SKEY, JSON.stringify(DB));
+    }
+    await DriveSync.subirBackup(DB);
+  }
   catch(e){ console.error('Error subiendo a Drive:', e); }
 }
 
