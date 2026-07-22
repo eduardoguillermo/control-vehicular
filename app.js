@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.45';
+const VERSION = 'v0.46';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -2096,6 +2096,13 @@ function mostrarSplash(){
 document.addEventListener('DOMContentLoaded', () => {
   load();
   document.getElementById('nav-version').textContent = VERSION;
+
+  // Pedir almacenamiento persistente: evita que el navegador (sobre todo en
+  // celular) borre el localStorage por presión de espacio o por inactividad.
+  // Mismo patrón que el resto del ecosistema (Control Financiero, etc.).
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(()=>{});
+  }
 
   if(esMobile()){
     iniciarVistaMobile();
