@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.47';
+const VERSION = 'v0.48';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -297,6 +297,13 @@ function fmtFecha(iso){
 }
 function hoyISO(){ return new Date().toISOString(); }
 function sumar(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
+// Conversión km/L -> L/100km (la otra forma habitual de expresar rendimiento).
+function litrosPor100Km(kmL){ return kmL ? 100/kmL : null; }
+// Texto combinado para mostrar el rendimiento en las dos unidades a la vez.
+function fmtRendimiento(kmL, dec=1){
+  if(!kmL) return '—';
+  return `${fmtNum(kmL,dec)} km/L · ${fmtNum(litrosPor100Km(kmL),dec)} L/100km`;
+}
 
 // ── REPORTE MENSUAL (km recorridos y gasto total por mes, para el gráfico) ──
 function primerYUltimoDiaMes(year, month){
@@ -1087,8 +1094,8 @@ function renderDashboard(){
 
     <div class="stats">
       <div class="stat"><div class="stat-n">${fmtKm(km)}</div><div class="stat-l">Km actual</div></div>
-      <div class="stat"><div class="stat-n">${rendUlt ? fmtNum(rendUlt,1) : '—'}</div><div class="stat-l">Último rendim. (km/L)</div></div>
-      <div class="stat"><div class="stat-n">${rendProm ? fmtNum(rendProm,1) : '—'}</div><div class="stat-l">Promedio 3 meses</div></div>
+      <div class="stat"><div class="stat-n">${rendUlt ? fmtNum(rendUlt,1) : '—'}</div><div class="stat-l">Último rendim. (km/L)</div>${rendUlt?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${fmtNum(litrosPor100Km(rendUlt),1)} L/100km</div>`:''}</div>
+      <div class="stat"><div class="stat-n">${rendProm ? fmtNum(rendProm,1) : '—'}</div><div class="stat-l">Promedio 3 meses</div>${rendProm?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${fmtNum(litrosPor100Km(rendProm),1)} L/100km</div>`:''}</div>
       <div class="stat"><div class="stat-n">${fmtMoney(gastoMes)}</div><div class="stat-l">Combustible este mes</div></div>
       <div class="stat"><div class="stat-n">${costoKm ? fmtMoney(costoKm.costoPorKmTotal) : '—'}</div><div class="stat-l">Costo / km (12m)</div></div>
     </div>
@@ -1126,7 +1133,7 @@ function renderTablaCargas(cargas){
       <td>${fmtNum(c.litros,1)} L</td>
       <td>${fmtMoney(c.totalPagado)}</td>
       <td>${c.tanqueLleno?'✅':'—'}</td>
-      <td>${c.rendimiento_calculado ? fmtNum(c.rendimiento_calculado,1)+' km/L' : '—'}</td>
+      <td>${fmtRendimiento(c.rendimiento_calculado)}</td>
     </tr>`).join('')}
   </tbody></table>`;
 }
@@ -1176,7 +1183,7 @@ function renderCombustible(){
   const rendProm = kpiRendimientoPromedio3Meses(v.uuid);
   document.getElementById('content').innerHTML = `
     <div class="stats">
-      <div class="stat"><div class="stat-n">${rendProm?fmtNum(rendProm,1):'—'}</div><div class="stat-l">Prom. km/L (3m)</div></div>
+      <div class="stat"><div class="stat-n">${rendProm?fmtNum(rendProm,1):'—'}</div><div class="stat-l">Prom. km/L (3m)</div>${rendProm?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${fmtNum(litrosPor100Km(rendProm),1)} L/100km</div>`:''}</div>
       <div class="stat"><div class="stat-n">${cargas.length}</div><div class="stat-l">Cargas registradas</div></div>
     </div>
     <div class="card"><div class="card-body twrap">
@@ -1190,7 +1197,7 @@ function renderCombustible(){
         <td>${fmtMoney(c.costoLitro)}</td>
         <td>${fmtMoney(c.totalPagado)}</td>
         <td>${c.tanqueLleno?'✅':'—'}</td>
-        <td>${c.rendimiento_calculado?fmtNum(c.rendimiento_calculado,1)+' km/L':'—'}</td>
+        <td>${fmtRendimiento(c.rendimiento_calculado)}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm" onclick="modalEditarCarga('${c.uuid}')">✎</button>
           <button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button>
@@ -1266,7 +1273,7 @@ function guardarNuevaCarga(){
   const { carga, alertas } = registrarCarga({ vehiculoId: v.uuid, km, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno });
   goTo('combustible');
   if(carga.rendimiento_calculado){
-    setTimeout(()=>alert(`✅ Carga guardada.\nRendimiento: ${fmtNum(carga.rendimiento_calculado,1)} km/L`), 100);
+    setTimeout(()=>alert(`✅ Carga guardada.\nRendimiento: ${fmtRendimiento(carga.rendimiento_calculado)}`), 100);
   }
   if(alertas.length){
     setTimeout(()=>alert(alertas.map(a=>a.mensaje).join('\n\n')), carga.rendimiento_calculado?300:100);
@@ -2305,7 +2312,7 @@ function guardarCargaRapidaMobile(){
   const { carga, alertas } = registrarCarga({ vehiculoId: v.uuid, km, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno });
 
   let msg = '✅ Carga guardada.';
-  if(carga.rendimiento_calculado) msg += ` Rendimiento: ${fmtNum(carga.rendimiento_calculado,1)} km/L.`;
+  if(carga.rendimiento_calculado) msg += ` Rendimiento: ${fmtRendimiento(carga.rendimiento_calculado)}.`;
   const slot = document.getElementById('vr-confirm-slot');
   if(slot) slot.innerHTML = `<div class="vr-confirm">${msg}</div>`;
 
