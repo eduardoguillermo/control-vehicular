@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.44';
+const VERSION = 'v0.45';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -264,8 +264,11 @@ function fmtSemanas(n){ const v = Math.abs(Math.round(n)); return v===1 ? '1 sem
 function fmtNum(n, dec=2){ return (Number(n)||0).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec}); }
 function fmtFecha(iso){
   if(!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-AR');
+  // Se toma solo la parte de fecha (YYYY-MM-DD) y se arma como fecha LOCAL,
+  // sin pasar por new Date(stringCompletoISO) — eso interpreta el string como
+  // UTC y en husos negativos (ej. UTC-3) termina mostrando el día anterior.
+  const [y, m, d] = iso.slice(0,10).split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('es-AR');
 }
 function hoyISO(){ return new Date().toISOString(); }
 function sumar(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
