@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.49';
+const VERSION = 'v0.53';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -102,7 +102,7 @@ function save(){
   catch(e){ alert('Error al guardar: '+e.message); }
   if(typeof DriveSync !== 'undefined' && DriveSync.conectado){
     clearTimeout(_driveSyncTimer);
-    _driveSyncTimer = setTimeout(()=>cvSubirDrive(), 5000);
+    _driveSyncTimer = setTimeout(()=> esMobile() ? cvSubirDriveMobil() : cvSubirDrive(), 5000);
   }
 }
 
@@ -167,10 +167,20 @@ async function cvSalir(){
   // En DEV_MODE nunca se sube nada, ni se intenta: solo queda el snapshot local.
   const driveEl = document.getElementById('salir-drive');
   if(DEV_MODE){
-    if(driveEl) driveEl.innerHTML = '<span class="amber">🔒</span><span>DEV es de solo lectura — no se sube nada a Drive</span>';
+    if(!mobile && DriveSync.conectado){
+      try{
+        await DriveSync.subirBackupHistorico(DB);
+        if(driveEl) driveEl.innerHTML = '<span class="green">☁️</span><span>Backup histórico guardado en carpeta DEV (el archivo en vivo de PROD sigue bloqueado)</span>';
+      } catch(e){
+        if(driveEl) driveEl.innerHTML = `<span class="red">⚠️</span><span>Backup histórico DEV falló: ${escHtml(e.message)}</span>`;
+      }
+    } else {
+      if(driveEl) driveEl.innerHTML = '<span class="amber">🔒</span><span>DEV es de solo lectura para el archivo en vivo — no se sube nada a PROD</span>';
+    }
   } else if(DriveSync.conectado){
     try{
-      await DriveSync.subirBackup(DB, true);
+      if(mobile) await cvSubirDriveMobil();
+      else await cvSubirDrive();
       if(driveEl) driveEl.innerHTML = '<span class="green">☁️</span><span>Backup subido a Drive</span>';
     } catch(e){
       if(driveEl) driveEl.innerHTML = `<span class="red">⚠️</span><span>Drive falló: ${escHtml(e.message)}</span>`;
@@ -264,6 +274,72 @@ async function cvSincronizarDrive(){
   }
 }
 
+// ── SYNC RESTRINGIDO PARA CELULAR (solo cargas de combustible) ─────────────
+// El celular NUNCA debe mergear ni subir vehículos, mantenimientos,
+// componentes, gastos ni alertas: si el teléfono tiene una copia vieja o
+// parcial de esas colecciones (por ejemplo porque hace tiempo no abre la
+// app completa), no debe poder pisarlas ni "resucitar" datos viejos en
+// Drive. El celular es de solo lectura para todo lo que no sea `cargas`;
+// para `cargas` sí aporta lo nuevo, mergeado por uuid/lastModified.
+const COLECCIONES_SOLO_PC = ['vehiculos','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas'];
+
+async function cvSubirDriveMobil(){
+  if(typeof DriveSync === 'undefined' || !DriveSync.conectado) return;
+  try{
+    const remoto = await DriveSync.bajarBackup();
+    if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
+      const cargasMergeadas = cvMergeColeccion(DB.cargas, remoto.cargas);
+      // Se sube una copia de lo remoto con SOLO `cargas` actualizado; todo
+      // lo demás viaja tal cual estaba en Drive, nunca la versión local del celu.
+      const dbParaSubir = Object.assign({}, remoto, { cargas: cargasMergeadas });
+      if(DB.nid > (remoto.nid||0)) dbParaSubir.nid = DB.nid;
+      await DriveSync.subirBackup(dbParaSubir);
+      // Reflejar localmente lo que había en Drive (vehículos, config, etc.)
+      // para que el selector/sugerencias del celu estén al día — solo lectura.
+      COLECCIONES_SOLO_PC.forEach(k => { DB[k] = remoto[k] || DB[k]; });
+      DB.cargas = cargasMergeadas;
+      if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
+      normalizarDB();
+      localStorage.setItem(SKEY, JSON.stringify(DB));
+    } else {
+      await DriveSync.subirBackup(DB);
+    }
+  }
+  catch(e){ console.error('Error subiendo a Drive (celu):', e); }
+}
+
+async function cvSincronizarDriveMobil(){
+  if(typeof DriveSync === 'undefined'){ alert('Drive Sync no disponible.'); return; }
+  if(!DriveSync.conectado){ DriveSync.conectar(); return; }
+  try{
+    await cvSubirDriveMobil();
+    alert('✅ Sincronizado con Drive.');
+    renderVistaRapidaMobile();
+  } catch(e){
+    console.error(e);
+    alert('⚠️ Error al sincronizar: '+e.message);
+  }
+}
+
+// ── BACKUP HISTÓRICO DIARIO (solo PC) ───────────────────────────────────────
+// Punto de restauración real e independiente del archivo "en vivo": se
+// guarda una copia fechada aparte en Drive, una vez por día, la primera vez
+// que se abre la app completa en la PC con Drive conectado. Así, si el
+// archivo en vivo se corrompe (por el motivo que sea), hay algo de dónde
+// restaurar que no es "volver a sincronizar contra lo mismo que está mal".
+const LKEY_ULTIMO_BACKUP_HIST = 'control-vehicular-ultimo-backup-hist';
+
+async function cvBackupHistoricoSiCorresponde(){
+  if(esMobile()) return;
+  if(typeof DriveSync === 'undefined' || !DriveSync.conectado) return;
+  const hoy = new Date().toISOString().slice(0,10);
+  if(localStorage.getItem(LKEY_ULTIMO_BACKUP_HIST) === hoy) return;
+  try{
+    await DriveSync.subirBackupHistorico(DB);
+    localStorage.setItem(LKEY_ULTIMO_BACKUP_HIST, hoy);
+  } catch(e){ console.error('Error creando backup histórico:', e); }
+}
+
 // Borra TODOS los datos (local + Drive si está conectado). Doble confirmación
 // porque es irreversible más allá del último snapshot que se guarda antes.
 async function cvBorrarTodo(){
@@ -325,12 +401,12 @@ function primerYUltimoDiaMes(year, month){
 function kmAlFinDeFecha(vehiculoId, fechaISO){
   const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
   let km = v ? (v.km_inicial||0) : 0;
-  DB.cargas.filter(c=>c.vehiculoId===vehiculoId && c.fecha<=fechaISO).forEach(c=>{ if(c.km>km) km=c.km; });
+  DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha<=fechaISO).forEach(c=>{ if(c.km>km) km=c.km; });
   DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha<=fechaISO).forEach(m=>{ if(m.kilometraje_realizado>km) km=m.kilometraje_realizado; });
   return km;
 }
 function gastoTotalDelPeriodo(vehiculoId, desde, hasta){
-  const totalCombustible = sumar(DB.cargas.filter(c=>c.vehiculoId===vehiculoId && c.fecha>=desde && c.fecha<=hasta).map(c=>c.totalPagado));
+  const totalCombustible = sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha>=desde && c.fecha<=hasta).map(c=>c.totalPagado));
   const totalMantenimientos = sumar(DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=desde && m.fecha<=hasta).map(m=>m.costo||0));
   const totalComponentes = sumar(DB.componentes.filter(c=>c.vehiculoId===vehiculoId && c.fecha_instalacion>=desde && c.fecha_instalacion<=hasta).map(c=>c.costo||0));
   const totalVariablesExtra = sumar(DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=desde && g.fecha<=hasta).map(g=>g.monto));
@@ -344,7 +420,7 @@ function primeraFechaConDatos(vehiculoId){
   // No usamos fecha_inicio_seguimiento del vehículo a propósito: es metadata
   // de cuándo se creó el registro, no necesariamente cuándo arrancaron los
   // datos reales. El reporte solo debe empezar donde hay carga/gasto real.
-  DB.cargas.filter(c=>c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha));
+  DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha));
   DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).forEach(m=>fechas.push(m.fecha));
   DB.componentes.filter(c=>c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha_instalacion));
   DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha));
@@ -420,14 +496,14 @@ function eliminarVehiculo(uuid){
 function kmActualVehiculo(vehiculoId){
   const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
   let km = v ? (v.km_inicial||0) : 0;
-  DB.cargas.filter(c=>c.vehiculoId===vehiculoId).forEach(c => { if(c.km > km) km = c.km; });
+  DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).forEach(c => { if(c.km > km) km = c.km; });
   DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).forEach(m => { if(m.kilometraje_realizado > km) km = m.kilometraje_realizado; });
   return km;
 }
 
 // ── COMBUSTIBLE ──────────────────────────────────────────────────────────────
 function cargasVehiculo(vehiculoId){
-  return DB.cargas.filter(c=>c.vehiculoId===vehiculoId).sort((a,b)=> a.km - b.km);
+  return DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).sort((a,b)=> a.km - b.km);
 }
 
 // Recalcula rendimiento_calculado de TODAS las cargas de un vehículo desde
@@ -509,8 +585,15 @@ function editarCarga(uuid, datos){
 function eliminarCarga(uuid){
   if(!confirm('¿Eliminar esta carga? Se va a recalcular el rendimiento de las cargas posteriores.')) return;
   const c = DB.cargas.find(x=>x.uuid===uuid);
-  const vehiculoId = c ? c.vehiculoId : null;
-  DB.cargas = DB.cargas.filter(x=>x.uuid!==uuid);
+  if(!c) return;
+  const vehiculoId = c.vehiculoId;
+  // Tombstone, no borrado físico: si se borrara del array, un merge con Drive
+  // (que compara por uuid) volvería a traerla desde el archivo remoto que
+  // todavía la tiene — la carga "resucitaría" al sincronizar. Marcándola
+  // como borrada y tocando lastModified, el borrado se propaga igual que
+  // cualquier otra edición (gana el más reciente por uuid).
+  c._deleted = true;
+  tocar(c);
   if(vehiculoId) recalcularRendimientosVehiculo(vehiculoId);
   save();
   goTo('combustible');
@@ -521,7 +604,7 @@ function kpiRendimientoPromedio3Meses(vehiculoId){
   const hace3Meses = new Date();
   hace3Meses.setMonth(hace3Meses.getMonth()-3);
   const cargas = DB.cargas.filter(c =>
-    c.vehiculoId===vehiculoId && c.tanqueLleno && c.rendimiento_calculado &&
+    !c._deleted && c.vehiculoId===vehiculoId && c.tanqueLleno && c.rendimiento_calculado &&
     new Date(c.fecha) >= hace3Meses
   );
   if(!cargas.length) return null;
@@ -535,7 +618,7 @@ function kpiUltimoRendimiento(vehiculoId){
 
 function kpiGastoCombustibleMes(vehiculoId){
   const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0);
-  return sumar(DB.cargas.filter(c=>c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioMes).map(c=>c.totalPagado));
+  return sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioMes).map(c=>c.totalPagado));
 }
 
 // ── MANTENIMIENTOS ────────────────────────────────────────────────────────────
@@ -880,7 +963,7 @@ function prorratearGastoFijo(gasto, desde, hasta){
 // KPI: costo por km (incluye combustible, mantenimientos, componentes reemplazados,
 // gastos variables extra, y gastos fijos prorrateados)
 function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
-  const cargasRango = DB.cargas.filter(c=>c.vehiculoId===vehiculoId && c.fecha>=fechaInicio && c.fecha<=fechaFin).sort((a,b)=>a.km-b.km);
+  const cargasRango = DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha>=fechaInicio && c.fecha<=fechaFin).sort((a,b)=>a.km-b.km);
   if(!cargasRango.length) return null;
   const kmInicio = cargasRango[0].km;
   const kmFin = cargasRango[cargasRango.length-1].km;
@@ -2040,9 +2123,16 @@ function renderBackup(){
     <div class="card">
       <div class="ch"><div class="ct">☁️ Google Drive</div></div>
       <div class="card-body">
-        ${DEV_MODE ? `<div class="alert alert-info" style="margin-bottom:10px">🔒 Este entorno es <b>DEV</b>: lee el backup real de PROD para tener datos de prueba parecidos a los reales, pero tiene bloqueada la escritura — nunca sube ni modifica nada en Drive, ni acá ni en "Salir" ni en el guardado automático.</div>` : ''}
+        ${DEV_MODE ? `<div class="alert alert-info" style="margin-bottom:10px">🔒 Este entorno es <b>DEV</b>: lee el backup real de PROD para tener datos de prueba parecidos a los reales, pero el archivo en vivo tiene la escritura bloqueada — nunca lo sube ni modifica, ni acá ni en "Salir" ni en el guardado automático. Los backups históricos de abajo sí se escriben de verdad, pero en su propia carpeta "ControlVehicular-DEV", nunca en la de PROD.</div>` : ''}
         <p class="text2" style="margin-bottom:10px">Estado: ${conectado?'<span class="green">✅ Conectado</span>':'<span class="text3">No conectado</span>'}</p>
         <button class="btn btn-p" onclick="cvSincronizarDrive()">🔄 ${conectado?(DEV_MODE?'Traer datos de PROD':'Sincronizar ahora'):'Conectar'}</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">☁️ Backups históricos en Drive</div></div>
+      <div class="card-body">
+        <p class="text2" style="margin-bottom:10px;font-size:12px">Copias fechadas aparte del archivo en vivo — una por día. Si el archivo en vivo se ensucia con algo del celular o de otro lado, restaurá desde acá en vez de sincronizar de nuevo contra lo mismo.</p>
+        <div id="hist-drive-list">${conectado ? 'Cargando...' : '<div class="empty">Conectá Drive para ver los backups históricos.</div>'}</div>
       </div>
     </div>
     <div class="card">
@@ -2070,6 +2160,41 @@ function renderBackup(){
       </div>
     </div>
   `;
+  if(conectado) cvCargarListaBackupsHistoricos();
+}
+
+async function cvCargarListaBackupsHistoricos(){
+  const el = document.getElementById('hist-drive-list');
+  if(!el) return;
+  try{
+    const files = await DriveSync.listarBackupsHistoricos();
+    if(!el.isConnected) return; // la vista pudo haber cambiado mientras esperábamos
+    if(!files.length){ el.innerHTML = '<div class="empty">Todavía no hay backups históricos (se crea uno por día al usar la app en la PC).</div>'; return; }
+    el.innerHTML = files.map(f => `<div class="hist-item">
+      <span class="hist-fecha">${new Date(f.createdTime).toLocaleString('es-AR')}</span>
+      <span style="margin-left:auto">
+        <button class="btn btn-sm" onclick="cvRestaurarBackupHistorico('${f.id}')">Restaurar</button>
+      </span>
+    </div>`).join('');
+  } catch(e){
+    if(el.isConnected) el.innerHTML = `<div class="empty">⚠️ No se pudo cargar la lista: ${escHtml(e.message)}</div>`;
+  }
+}
+
+async function cvRestaurarBackupHistorico(fileId){
+  if(!confirm('¿Restaurar este backup? Se reemplazan los datos actuales (local y en Drive) por esta copia.')) return;
+  try{
+    cvHacerSnapshot(true); // último salvavidas antes de pisar todo
+    const datos = await DriveSync.bajarBackupPorId(fileId);
+    DB = datos;
+    normalizarDB();
+    save();
+    await DriveSync.subirBackup(DB);
+    alert('✅ Backup restaurado y subido como archivo en vivo.');
+    goTo('dashboard');
+  } catch(e){
+    alert('⚠️ Error al restaurar: '+e.message);
+  }
 }
 
 // ── SPLASH ────────────────────────────────────────────────────────────────────
@@ -2163,6 +2288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // que "No conectado" pase a "Conectado" sin que el usuario tenga que
         // hacer nada más.
         if(!esMobile() || _modoAppCompleta) goTo(_currentView || 'backup');
+        cvBackupHistoricoSiCorresponde();
       });
     }
   }
@@ -2171,7 +2297,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState === 'hidden'){
       cvHacerSnapshot(false);
-      if(typeof DriveSync !== 'undefined' && DriveSync.conectado) DriveSync.subirBackup(DB, true).catch(()=>{});
+      if(typeof DriveSync !== 'undefined' && DriveSync.conectado){
+        if(esMobile()) cvSubirDriveMobil().catch(()=>{});
+        else DriveSync.subirBackup(DB, true).catch(()=>{});
+      }
     }
   });
   window.addEventListener('beforeunload', ()=>{ cvHacerSnapshot(false); });
@@ -2226,7 +2355,7 @@ function renderVistaRapidaMobile(){
       <div class="vr-top"><div class="vr-title">⛽ Control Vehicular</div><div class="vr-sub">Carga rápida de combustible</div></div>
       <div class="vr-body">
         <div class="empty">Todavía no hay ningún vehículo cargado. Configuralo desde la PC en la sección Vehículos, y después sincronizá Drive acá para verlo.</div>
-        <button class="btn" onclick="cvSincronizarDrive()">🔄 Sincronizar con Drive</button>
+        <button class="btn" onclick="cvSincronizarDriveMobil()">🔄 Sincronizar con Drive</button>
       </div>
     `;
     document.body.appendChild(el);
@@ -2297,7 +2426,7 @@ function renderVistaRapidaMobile(){
       <div style="text-align:center;font-size:10px;color:var(--text3);font-family:monospace;margin-top:4px">${VERSION}${DEV_MODE?' · DEV':''}</div>
     </div>
     <div class="vr-footer">
-      <button onclick="cvSincronizarDrive()">🔄 Sincronizar</button>
+      <button onclick="cvSincronizarDriveMobil()">🔄 Sincronizar</button>
       <button class="vr-salir" onclick="cvSalir()">🚪 Guardar y salir</button>
     </div>
   `;
