@@ -140,11 +140,11 @@ const DriveSync = (() => {
     try { return await _backupFilePromise; } finally { _backupFilePromise = null; }
   }
 
-  async function subirJSON(obj, creando = false, keepalive = false) {
+  async function subirJSON(obj, creando = false, keepalive = false, nombreArchivo = ARCHIVO_BACKUP, archivoIdDestino = null) {
     await ensureFolder();
     const boundary = 'cveh_boundary';
     const metadata = creando
-      ? { name: ARCHIVO_BACKUP, parents: [folderId], mimeType: 'application/json' }
+      ? { name: nombreArchivo, parents: [folderId], mimeType: 'application/json' }
       : { mimeType: 'application/json' };
     const body =
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
@@ -152,7 +152,7 @@ const DriveSync = (() => {
 
     const url = creando
       ? 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'
-      : `https://www.googleapis.com/upload/drive/v3/files/${backupFileId}?uploadType=multipart`;
+      : `https://www.googleapis.com/upload/drive/v3/files/${archivoIdDestino || backupFileId}?uploadType=multipart`;
 
     const opts = {
       method: creando ? 'POST' : 'PATCH',
@@ -177,9 +177,54 @@ const DriveSync = (() => {
     return resp.json();
   }
 
+  // ── BACKUPS HISTÓRICOS ─────────────────────────────────────────────────
+  // Copias fechadas, independientes del archivo "en vivo" (ARCHIVO_BACKUP).
+  // Sirven como punto de restauración real cuando el archivo en vivo se
+  // corrompe o se le mergea algo indeseado — algo que restaurar que no sea
+  // "volver a sincronizar" contra el mismo archivo que puede estar mal.
+  const PREFIJO_HIST = 'backup_';
+  const MAX_BACKUPS_HIST = 30;
+
+  function _nombreBackupHistorico() {
+    const f = new Date();
+    const p = n => String(n).padStart(2, '0');
+    return `${PREFIJO_HIST}${f.getFullYear()}-${p(f.getMonth()+1)}-${p(f.getDate())}_${p(f.getHours())}${p(f.getMinutes())}.json`;
+  }
+
+  async function listarBackupsHistoricos() {
+    await ensureFolder();
+    const q = encodeURIComponent(`name contains '${PREFIJO_HIST}' and '${folderId}' in parents and trashed=false`);
+    const resp = await api(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,createdTime)&orderBy=createdTime desc&pageSize=50`);
+    const data = await resp.json();
+    return data.files || [];
+  }
+
+  async function bajarBackupPorId(fileId) {
+    const resp = await api(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    return resp.json();
+  }
+
+  async function _limpiarBackupsViejos() {
+    try {
+      const files = await listarBackupsHistoricos();
+      if (files.length <= MAX_BACKUPS_HIST) return;
+      const sobrantes = files.slice(MAX_BACKUPS_HIST);
+      for (const f of sobrantes) {
+        try { await api(`https://www.googleapis.com/drive/v3/files/${f.id}`, { method: 'DELETE' }); } catch (e) {}
+      }
+    } catch (e) { log('Error limpiando backups viejos', e); }
+  }
+
+  async function subirBackupHistorico(datosCompletos) {
+    await ensureFolder();
+    await subirJSON(datosCompletos, true, false, _nombreBackupHistorico());
+    _limpiarBackupsViejos();
+  }
+
   return {
     init, conectar, forzarReconexion,
     subirBackup, bajarBackup,
+    subirBackupHistorico, listarBackupsHistoricos, bajarBackupPorId,
     onToken(fn){ onTokenCallback = fn; },
     get conectado() { return !!accessToken; }
   };
