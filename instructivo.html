@@ -491,6 +491,7 @@
     </div>
     <p>Además del backup en Drive, la app guarda automáticamente <b>snapshots locales</b> (hasta 10) cada vez que minimizás, cambiás de pestaña, o cerrás la app. También podés forzar uno manual desde Backup → Crear snapshot manual.</p>
     <p>Si algo sale mal, podés restaurar cualquier snapshot desde la sección Backup — reemplaza todos los datos actuales por los de ese momento.</p>
+    <p>Desde la PC, además, la app guarda un <b>backup histórico en Drive</b> aparte del archivo en vivo: una copia fechada por día, independiente, para poder volver a un punto anterior si el archivo en vivo se ensucia con algo (no solo "sincronizar de nuevo contra lo mismo"). Se ve en Backup → "☁️ Backups históricos en Drive", con un botón Restaurar por cada fecha.</p>
     <div class="warning">La sección Backup también tiene un botón <b>"🗑️ Borrar todos los datos"</b> en la Zona de riesgo, para arrancar de cero (por ejemplo, después de probar la app y antes de cargar datos reales). Pide confirmación doble y borra también el backup en Drive si está conectado — igual guarda un último snapshot local por las dudas.</div>
   </div>
 
@@ -508,7 +509,8 @@
       <div class="step"><div class="step-num"></div><div class="step-body">Cada carga que guardás sube el backup solo, con un pequeño retraso (debounce de 5 segundos) para no golpear la API en cada tecla.</div></div>
       <div class="step"><div class="step-num"></div><div class="step-body">Al tocar Sincronizar manualmente, la app baja lo que haya en Drive, lo combina con lo que tenés localmente (por registro, priorizando el más reciente) y vuelve a subir todo junto.</div></div>
     </div>
-    <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente.</div>
+    <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente. Borrar un registro también viaja bien en el merge: queda marcado como borrado y ese borrado gana, en vez de que el registro viejo vuelva a aparecer.</div>
+    <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b>. Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
   </div>
 
   <div class="section" id="salir">
@@ -521,8 +523,8 @@
     </div>
     <table>
       <tr><th>Dispositivo</th><th>Qué hace "Salir"</th></tr>
-      <tr><td>📱 Celular</td><td>Snapshot local + backup a Drive, y confirma con un botón "Listo". La app sigue abierta.</td></tr>
-      <tr><td>💻 PC</td><td>Lo mismo, pero termina con un botón "Cerrar app" que intenta cerrar la pestaña.</td></tr>
+      <tr><td>📱 Celular</td><td>Snapshot local + sube solo las cargas de combustible a Drive (mergeadas), y confirma con un botón "Listo". La app sigue abierta.</td></tr>
+      <tr><td>💻 PC</td><td>Snapshot local + backup completo a Drive (mergeado), y termina con un botón "Cerrar app" que intenta cerrar la pestaña.</td></tr>
     </table>
     <div class="note">Los navegadores bloquean el cierre automático de pestañas que no fueron abiertas por script — es una limitación de seguridad del navegador, no de la app. Si no se cierra sola, el mensaje final te confirma que ya podés cerrarla vos.</div>
   </div>
