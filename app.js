@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.54';
+const VERSION = 'v0.55';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -244,9 +244,9 @@ async function cvSubirDrive(){
   catch(e){ console.error('Error subiendo a Drive:', e); }
 }
 
-async function cvSincronizarDrive(){
-  if(typeof DriveSync === 'undefined'){ alert('Drive Sync no disponible.'); return; }
-  if(!DriveSync.conectado){ DriveSync.conectar(); return; }
+async function cvSincronizarDrive(silencioso){
+  if(typeof DriveSync === 'undefined'){ if(!silencioso) alert('Drive Sync no disponible.'); return; }
+  if(!DriveSync.conectado){ if(!silencioso) DriveSync.conectar(); return; }
   try{
     const remoto = await DriveSync.bajarBackup();
     if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
@@ -264,15 +264,15 @@ async function cvSincronizarDrive(){
       save();
     }
     if(DEV_MODE){
-      alert('✅ Datos actualizados desde PROD (solo lectura — DEV nunca sube nada a Drive).');
+      if(!silencioso) alert('✅ Datos actualizados desde PROD (solo lectura — DEV nunca sube nada a Drive).');
     } else {
       await DriveSync.subirBackup(DB);
-      alert('✅ Sincronizado con Drive.');
+      if(!silencioso) alert('✅ Sincronizado con Drive.');
     }
     goTo(_currentView || 'dashboard');
   } catch(e){
     console.error(e);
-    alert('⚠️ Error al sincronizar: '+e.message);
+    if(!silencioso) alert('⚠️ Error al sincronizar: '+e.message);
   }
 }
 
@@ -310,16 +310,16 @@ async function cvSubirDriveMobil(){
   catch(e){ console.error('Error subiendo a Drive (celu):', e); }
 }
 
-async function cvSincronizarDriveMobil(){
-  if(typeof DriveSync === 'undefined'){ alert('Drive Sync no disponible.'); return; }
-  if(!DriveSync.conectado){ DriveSync.conectar(); return; }
+async function cvSincronizarDriveMobil(silencioso){
+  if(typeof DriveSync === 'undefined'){ if(!silencioso) alert('Drive Sync no disponible.'); return; }
+  if(!DriveSync.conectado){ if(!silencioso) DriveSync.conectar(); return; }
   try{
     await cvSubirDriveMobil();
-    alert('✅ Sincronizado con Drive.');
+    if(!silencioso) alert('✅ Sincronizado con Drive.');
     renderVistaRapidaMobile();
   } catch(e){
     console.error(e);
-    alert('⚠️ Error al sincronizar: '+e.message);
+    if(!silencioso) alert('⚠️ Error al sincronizar: '+e.message);
   }
 }
 
@@ -2337,6 +2337,28 @@ document.addEventListener('DOMContentLoaded', () => {
         cvBackupHistoricoSiCorresponde();
       });
     }
+
+    // Auto-sync silencioso al abrir la app: apenas Drive queda conectado
+    // (con token guardado o reconexión silenciosa), sincroniza solo, sin
+    // botón ni alertas — tanto en la app de PC como en la carga rápida del
+    // celular. Se intenta por unos segundos porque la reconexión silenciosa
+    // de Google puede tardar un instante en resolver.
+    let _autoSyncHecho = false;
+    let _intentosAutoSync = 0;
+    const _autoSyncTimer = setInterval(() => {
+      _intentosAutoSync++;
+      if(DriveSync.conectado && !_autoSyncHecho){
+        _autoSyncHecho = true;
+        clearInterval(_autoSyncTimer);
+        if(esMobile()){
+          cvSincronizarDriveMobil(true);
+        } else {
+          cvSincronizarDrive(true);
+        }
+      } else if(_intentosAutoSync > 20){ // ~5s máximo esperando la reconexión silenciosa
+        clearInterval(_autoSyncTimer);
+      }
+    }, 250);
   }
 
   // Safe-close: snapshot automático + Drive
