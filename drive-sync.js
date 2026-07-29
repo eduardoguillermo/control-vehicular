@@ -60,7 +60,12 @@ const DriveSync = (() => {
       accessToken = guardado;
       programarRenovacion();
       if (onReady) onReady();
-    } else if (localStorage.getItem(TOKEN_KEY)) {
+    } else {
+      // Siempre intentar reconexión silenciosa al abrir la app, haya o no
+      // un token previo guardado en este navegador: si el scope ya fue
+      // otorgado desde cualquier otra PWA del ecosistema (mismo Client ID),
+      // Google puede emitir el token sin mostrar ningún popup. Si falla,
+      // no pasa nada visible — queda disponible el botón "Conectar".
       tokenClient.requestAccessToken({ prompt: '' });
     }
   }
