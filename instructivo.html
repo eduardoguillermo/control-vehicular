@@ -334,7 +334,7 @@
     <h2>Los campos</h2>
     <ul>
       <li><b>Kilometraje actual</b> — se sugiere automáticamente el último conocido.</li>
-      <li><b>Marca</b> — Axion, YPF, Shell u Otras.</li>
+      <li><b>Marca</b> — Axion, YPF, Shell u Otras de base, pero es un campo editable: podés escribir cualquier otra marca (por ejemplo una estación local) y queda guardada como sugerencia para la próxima vez. Las marcas propias que agregaste se pueden borrar tocando la ✕ junto a cada una, si ya no las usás.</li>
       <li><b>Tipo</b> — Super o Premium.</li>
       <li><b>Litros</b>, <b>Costo por litro</b> y <b>Total pagado</b> — se calculan solos entre sí: si cargás dos de los tres, el tercero se completa automáticamente (litros + precio/L → total, o litros + total → precio/L). El que estés tipeando en ese momento nunca se pisa solo.</li>
       <li><b>¿Tanque lleno?</b> — arranca tildado por default (para el caso normal de siempre llenar el tanque); destildalo solo en cargas parciales.</li>
@@ -505,9 +505,10 @@
     </div>
     <p>Control Vehicular guarda un único archivo <code>control-vehicular_backup.json</code> en una carpeta <b>ControlVehicular</b> visible en tu Google Drive.</p>
     <div class="steps">
-      <div class="step"><div class="step-num"></div><div class="step-body">Conectás Drive una vez desde Backup → Conectar (o directamente al tocar Sincronizar).</div></div>
-      <div class="step"><div class="step-num"></div><div class="step-body">Cada carga que guardás sube el backup solo, con un pequeño retraso (debounce de 5 segundos) para no golpear la API en cada tecla.</div></div>
-      <div class="step"><div class="step-num"></div><div class="step-body">Al tocar Sincronizar manualmente, la app baja lo que haya en Drive, lo combina con lo que tenés localmente (por registro, priorizando el más reciente) y vuelve a subir todo junto.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Conectás Drive una vez desde Backup → Conectar (o directamente al tocar Sincronizar). Ese consentimiento queda guardado en tu cuenta de Google y vale para todo el ecosistema de apps, no solo esta.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Desde entonces, cada vez que abrís la app — tanto en PC como en la carga rápida del celular — se reconecta a Drive sola, en silencio, sin pedirte que toques nada, y sincroniza automáticamente al ratito de abrir. Si por algún motivo no logra reconectarse sola (por ejemplo, la primera vez que usás la app en un dispositivo nuevo), queda el botón "Conectar" como respaldo.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Cada carga que guardás también sube el backup por su cuenta, con un pequeño retraso (debounce de 5 segundos) para no golpear la API en cada tecla.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Si además tocás Sincronizar manualmente, pasa lo mismo que en la sincronización automática, pero mostrando la confirmación en pantalla: la app baja lo que haya en Drive, lo combina con lo que tenés localmente (por registro, priorizando el más reciente) y vuelve a subir todo junto.</div></div>
     </div>
     <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente. Borrar un registro también viaja bien en el merge: queda marcado como borrado y ese borrado gana, en vez de que el registro viejo vuelva a aparecer.</div>
     <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b>. Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
