@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.53';
+const VERSION = 'v0.54';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -30,6 +30,7 @@ let DB = {
   gastosVariables: [],
   alertas: [],
   tiposComponenteCustom: [],
+  marcasCombustibleCustom: [],
   config: { vehiculoActivo: null }
 };
 
@@ -45,6 +46,7 @@ function normalizarDB(){
   ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
     .forEach(k => { if(!DB[k]) DB[k] = []; });
   if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
+  if(!DB.marcasCombustibleCustom) DB.marcasCombustibleCustom = [];
   if(!DB.config) DB.config = {};
   if(DB.config.vehiculoActivo === undefined) DB.config.vehiculoActivo = null;
   if(!DB.config.umbralKmAvisoVencimiento) DB.config.umbralKmAvisoVencimiento = DEFAULT_UMBRAL_KM_AVISO_VENCIMIENTO;
@@ -1309,7 +1311,14 @@ function modalNuevaCarga(){
   abrirModal('⛽ Nueva carga de combustible', `
     <div class="fg"><label>Kilometraje actual</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" placeholder="km" onfocus="this.select()"></div>
     <div class="fgrid">
-      <div class="fg"><label>Marca</label><select id="f-marca">${MARCAS_COMBUSTIBLE.map(m=>`<option ${m===marcaSugerida?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="fg">
+        <label>Marca</label>
+        <input type="text" id="f-marca" list="marcas-combustible-datalist" value="${escHtml(marcaSugerida)}">
+        <datalist id="marcas-combustible-datalist">
+          ${marcasCombustibleDisponibles().map(m=>`<option value="${escHtml(m)}">`).join('')}
+        </datalist>
+        <div id="marcas-custom-chips">${renderChipsMarcasCustom()}</div>
+      </div>
       <div class="fg"><label>Tipo</label><select id="f-tipoCombustible">${TIPOS_COMBUSTIBLE.map(t=>`<option ${t===tipoSugerido?'selected':''}>${t}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid">
@@ -1353,13 +1362,14 @@ function recalcularCarga(prefix, campoEditado){
 function guardarNuevaCarga(){
   const v = vehiculoActivo();
   const km = Number(document.getElementById('f-km').value);
-  const marca = document.getElementById('f-marca').value;
+  const marca = document.getElementById('f-marca').value.trim();
   const tipoCombustible = document.getElementById('f-tipoCombustible').value;
   const litros = Number(document.getElementById('f-litros').value);
   const costoLitro = Number(document.getElementById('f-costoLitro').value);
   const totalPagado = Number(document.getElementById('f-total').value);
   const tanqueLleno = document.getElementById('f-lleno').checked;
   if(!km || !litros || !totalPagado){ alert('Completá km, litros y total.'); return; }
+  recordarMarcaCombustibleCustom(marca);
   DB.config.ultimaMarca = marca;
   DB.config.ultimoTipoCombustible = tipoCombustible;
   cerrarModal();
@@ -1382,7 +1392,14 @@ function modalEditarCarga(uuid){
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha" value="${c.fecha.slice(0,10)}"></div>
     </div>
     <div class="fgrid">
-      <div class="fg"><label>Marca</label><select id="f-marca">${MARCAS_COMBUSTIBLE.map(m=>`<option ${m===c.marca?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="fg">
+        <label>Marca</label>
+        <input type="text" id="f-marca" list="marcas-combustible-datalist" value="${escHtml(c.marca)}">
+        <datalist id="marcas-combustible-datalist">
+          ${marcasCombustibleDisponibles().map(m=>`<option value="${escHtml(m)}">`).join('')}
+        </datalist>
+        <div id="marcas-custom-chips">${renderChipsMarcasCustom()}</div>
+      </div>
       <div class="fg"><label>Tipo</label><select id="f-tipoCombustible">${TIPOS_COMBUSTIBLE.map(t=>`<option ${t===c.tipoCombustible?'selected':''}>${t}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid">
@@ -1403,11 +1420,12 @@ function modalEditarCarga(uuid){
 function guardarEdicionCarga(uuid){
   const km = Number(document.getElementById('f-km').value);
   const fecha = new Date(document.getElementById('f-fecha').value).toISOString();
-  const marca = document.getElementById('f-marca').value;
+  const marca = document.getElementById('f-marca').value.trim();
   const tipoCombustible = document.getElementById('f-tipoCombustible').value;
   const litros = Number(document.getElementById('f-litros').value);
   const costoLitro = Number(document.getElementById('f-costoLitro').value);
   const totalPagado = Number(document.getElementById('f-total').value);
+  recordarMarcaCombustibleCustom(marca);
   const tanqueLleno = document.getElementById('f-lleno').checked;
   if(!km || !litros || !totalPagado){ alert('Completá km, litros y total.'); return; }
   cerrarModal();
@@ -1685,6 +1703,34 @@ function renderChipsTiposCustom(){
   if(!DB.tiposComponenteCustom.length) return '';
   return `<div style="font-size:11px;color:var(--text3);margin-top:2px">Sugerencias guardadas: ${
     DB.tiposComponenteCustom.map(t=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 4px 2px 8px;margin:2px 4px 2px 0">${escHtml(t)}<button onclick="eliminarTipoComponenteCustom('${escHtml(t).replace(/'/g,"\\'")}')" style="border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;padding:0 4px" title="Borrar sugerencia">✕</button></span>`).join('')
+  }</div>`;
+}
+
+// Marcas disponibles para el combobox de combustible: las 4 base + cualquier
+// marca custom que el usuario haya escrito antes (queda como sugerencia
+// persistente, sin perder la posibilidad de escribir una nueva).
+function marcasCombustibleDisponibles(){
+  const usadas = DB.cargas.map(c=>c.marca).filter(Boolean);
+  const set = new Set([...MARCAS_COMBUSTIBLE, ...DB.marcasCombustibleCustom, ...usadas]);
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
+}
+function recordarMarcaCombustibleCustom(marca){
+  if(!marca) return;
+  if(MARCAS_COMBUSTIBLE.includes(marca)) return;
+  if(DB.marcasCombustibleCustom.includes(marca)) return;
+  DB.marcasCombustibleCustom.push(marca);
+  save();
+}
+function eliminarMarcaCombustibleCustom(marca){
+  DB.marcasCombustibleCustom = DB.marcasCombustibleCustom.filter(m=>m!==marca);
+  save();
+  const cont = document.getElementById('marcas-custom-chips');
+  if(cont) cont.innerHTML = renderChipsMarcasCustom();
+}
+function renderChipsMarcasCustom(){
+  if(!DB.marcasCombustibleCustom.length) return '';
+  return `<div style="font-size:11px;color:var(--text3);margin-top:2px">Sugerencias guardadas: ${
+    DB.marcasCombustibleCustom.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 4px 2px 8px;margin:2px 4px 2px 0">${escHtml(m)}<button onclick="eliminarMarcaCombustibleCustom('${escHtml(m).replace(/'/g,"\\'")}')" style="border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;padding:0 4px" title="Borrar sugerencia">✕</button></span>`).join('')
   }</div>`;
 }
 
@@ -2391,7 +2437,10 @@ function renderVistaRapidaMobile(){
       <div class="vr-row">
         <div class="vr-fg">
           <label>Marca</label>
-          <select id="vr-marca">${MARCAS_COMBUSTIBLE.map(m=>`<option ${m===marcaSugerida?'selected':''}>${m}</option>`).join('')}</select>
+          <input type="text" id="vr-marca" list="marcas-combustible-datalist" value="${escHtml(marcaSugerida)}">
+          <datalist id="marcas-combustible-datalist">
+            ${marcasCombustibleDisponibles().map(m=>`<option value="${escHtml(m)}">`).join('')}
+          </datalist>
         </div>
         <div class="vr-fg">
           <label>Tipo</label>
@@ -2438,13 +2487,14 @@ function renderVistaRapidaMobile(){
 function guardarCargaRapidaMobile(){
   const v = vehiculoActivo();
   const km = Number(document.getElementById('vr-km').value);
-  const marca = document.getElementById('vr-marca').value;
+  const marca = document.getElementById('vr-marca').value.trim();
   const tipoCombustible = document.getElementById('vr-tipoCombustible').value;
   const litros = Number(document.getElementById('vr-litros').value);
   const costoLitro = Number(document.getElementById('vr-costoLitro').value);
   const totalPagado = Number(document.getElementById('vr-total').value);
   const tanqueLleno = document.getElementById('vr-lleno').checked;
   if(!km || !litros || !totalPagado){ alert('Completá km, litros y total.'); return; }
+  recordarMarcaCombustibleCustom(marca);
   DB.config.ultimaMarca = marca;
   DB.config.ultimoTipoCombustible = tipoCombustible;
 
