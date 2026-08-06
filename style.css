@@ -213,6 +213,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .vr-footer button.vr-salir{background:#334155;color:#fff;border-color:#334155}
 .vr-confirm{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:10px;padding:14px;text-align:center;color:var(--green);font-size:13px}
 .vr-full-link{text-align:center;font-size:11px;color:var(--text3);margin-top:6px}
+.vr-gps{text-align:center;font-size:12px;color:var(--text2);padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
 
 /* ── REPORTES: gráfico combinado de barras (km + gasto por mes) ───────────── */
 .barchart-legend{display:flex;gap:14px;margin-bottom:12px;font-size:11px;color:var(--text2);flex-wrap:wrap}
