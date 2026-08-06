@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.56';
+const VERSION = 'v0.57';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -643,10 +643,14 @@ function registrarCarga(datos){
   const tanqueLleno = !!datos.tanqueLleno;
   const tipoCombustible = datos.tipoCombustible || '';
   const marca = datos.marca || '';
+  // ubicacion: {lat,lng,direccion} capturada por GPS + reverse geocoding
+  // (Nominatim) al momento de cargar desde el celular (opcional —
+  // undefined/null si no está disponible o si la carga se hizo desde la PC).
+  const ubicacion = datos.ubicacion || null;
 
   const nuevaCarga = tocar({
     uuid: cvNuevoUUID(),
-    vehiculoId, km, litros, costoLitro, totalPagado, tanqueLleno, tipoCombustible, marca,
+    vehiculoId, km, litros, costoLitro, totalPagado, tanqueLleno, tipoCombustible, marca, ubicacion,
     fecha: datos.fecha || hoyISO(),
     rendimiento_calculado: null,
     litros_acumulados_desde_ultimo_lleno: null
@@ -1383,7 +1387,7 @@ function renderCombustible(){
       <div class="stat"><div class="stat-n">${cargas.length}</div><div class="stat-l">Cargas registradas</div></div>
     </div>
     <div class="card"><div class="card-body twrap">
-      ${cargas.length ? `<table><thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th></th></tr></thead><tbody>
+      ${cargas.length ? `<table><thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍</th><th></th></tr></thead><tbody>
       ${cargas.map(c=>`<tr>
         <td class="mono">${fmtFecha(c.fecha)}</td>
         <td>${fmtKm(c.km)}</td>
@@ -1394,6 +1398,7 @@ function renderCombustible(){
         <td>${fmtMoney(c.totalPagado)}</td>
         <td>${c.tanqueLleno?'✅':'—'}</td>
         <td>${fmtRendimiento(c.rendimiento_calculado)}</td>
+        <td>${c.ubicacion ? `<a href="https://www.google.com/maps?q=${c.ubicacion.lat},${c.ubicacion.lng}" target="_blank" rel="noopener" title="${c.ubicacion.direccion ? escHtml(c.ubicacion.direccion) : 'Ver ubicación en el mapa'}">📍</a>` : '—'}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm" onclick="modalEditarCarga('${c.uuid}')">✎</button>
           <button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button>
@@ -2590,6 +2595,7 @@ function renderVistaRapidaMobile(){
         <label>⛽ ¿Tanque lleno?</label>
         <input type="checkbox" id="vr-lleno" checked>
       </div>
+      <div class="vr-gps" id="vr-gps-status">📍 Obteniendo ubicación…</div>
 
       <button class="vr-btn-main" onclick="guardarCargaRapidaMobile()">Guardar carga</button>
       <div class="vr-full-link">
@@ -2606,6 +2612,78 @@ function renderVistaRapidaMobile(){
   `;
   document.body.appendChild(el);
   setTimeout(()=>document.getElementById('vr-km').focus(), 50);
+  cvCapturarUbicacionMobile();
+}
+
+// Ubicación GPS de la carga en curso (celular). Se vuelve a capturar cada
+// vez que se abre/reinicia la vista rápida, así cada carga queda con su
+// propia posición. null si no está disponible, no soportada, o el usuario
+// no dio permiso — la carga se guarda igual, sin ubicación.
+// { lat, lng, direccion } — direccion queda undefined si el reverse geocoding
+// falla (sin internet, servicio caído, etc.); igual se guarda lat/lng.
+let _vrUbicacionActual = null;
+function cvCapturarUbicacionMobile(){
+  _vrUbicacionActual = null;
+  const el = document.getElementById('vr-gps-status');
+  if(!navigator.geolocation){
+    if(el) el.textContent = '📍 GPS no disponible en este navegador';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      _vrUbicacionActual = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const elNow = document.getElementById('vr-gps-status');
+      if(elNow) elNow.textContent = '📍 Ubicación capturada · buscando estación…';
+      cvReverseGeocodeMobile(_vrUbicacionActual);
+    },
+    err => {
+      const elNow = document.getElementById('vr-gps-status');
+      if(elNow) elNow.textContent = err.code === err.PERMISSION_DENIED
+        ? '📍 Sin permiso de ubicación (se guarda sin ella)'
+        : '📍 No se pudo obtener ubicación (se guarda sin ella)';
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+// Reverse geocoding vía Nominatim (OpenStreetMap) — gratuito, sin API key.
+// Convierte lat/lng en un nombre de lugar/dirección legible (ej. "YPF, Ruta
+// 9, Maldonado"). Si falla (sin internet, timeout, servicio caído) la carga
+// igual se guarda con lat/lng, solo que sin el texto de dirección.
+function cvReverseGeocodeMobile(ubic){
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(()=>ctrl.abort(), 8000);
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${ubic.lat}&lon=${ubic.lng}&zoom=18&addressdetails=1`;
+  fetch(url, { headers: { 'Accept-Language': 'es' }, signal: ctrl.signal })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+    .then(data => {
+      clearTimeout(timeoutId);
+      const a = data.address || {};
+      // Prioridad: nombre del POI (estación de servicio, si Nominatim lo
+      // identifica) > nombre de la vía > la dirección visible completa.
+      const nombreLugar = data.name || a.fuel || a.amenity || a.shop || null;
+      const calle = a.road || a.pedestrian || '';
+      const localidad = a.city || a.town || a.village || a.suburb || '';
+      let direccion = nombreLugar ? nombreLugar : (calle || data.display_name || '');
+      if(localidad && !direccion.includes(localidad)) direccion += (direccion ? ', ' : '') + localidad;
+      if(!direccion) direccion = data.display_name || '';
+
+      // Solo aplica si sigue siendo la misma ubicación vigente (el usuario
+      // no cerró/reinició el formulario mientras esperábamos la respuesta).
+      if(_vrUbicacionActual && _vrUbicacionActual.lat === ubic.lat && _vrUbicacionActual.lng === ubic.lng){
+        _vrUbicacionActual.direccion = direccion;
+        const elNow = document.getElementById('vr-gps-status');
+        if(elNow) elNow.textContent = direccion ? `📍 ${direccion}` : '📍 Ubicación capturada';
+      }
+    })
+    .catch(() => {
+      clearTimeout(timeoutId);
+      // Sin dirección legible, pero lat/lng ya está guardado en _vrUbicacionActual.
+      if(_vrUbicacionActual && _vrUbicacionActual.lat === ubic.lat && _vrUbicacionActual.lng === ubic.lng){
+        const elNow = document.getElementById('vr-gps-status');
+        if(elNow) elNow.textContent = '📍 Ubicación capturada (sin nombre de lugar)';
+      }
+    });
 }
 
 
@@ -2623,10 +2701,12 @@ function guardarCargaRapidaMobile(){
   DB.config.ultimaMarca = marca;
   DB.config.ultimoTipoCombustible = tipoCombustible;
 
-  const { carga, alertas } = registrarCarga({ vehiculoId: v.uuid, km, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno });
+  const { carga, alertas } = registrarCarga({ vehiculoId: v.uuid, km, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno, ubicacion: _vrUbicacionActual ? { ..._vrUbicacionActual } : null });
 
   let msg = '✅ Carga guardada.';
   if(carga.rendimiento_calculado) msg += ` Rendimiento: ${fmtRendimiento(carga.rendimiento_calculado)}.`;
+  if(carga.ubicacion && carga.ubicacion.direccion) msg += ` 📍 ${carga.ubicacion.direccion}`;
+  else if(carga.ubicacion) msg += ' 📍 Con ubicación.';
   const slot = document.getElementById('vr-confirm-slot');
   if(slot) slot.innerHTML = `<div class="vr-confirm">${msg}</div>`;
 
