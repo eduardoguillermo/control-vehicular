@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.58';
+const VERSION = 'v0.65';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -25,6 +25,7 @@ let DB = {
   cargas: [],
   mantenimientosProgramados: [],
   mantenimientosRealizados: [],
+  novedades: [],
   componentes: [],
   gastosFijos: [],
   gastosVariables: [],
@@ -43,7 +44,7 @@ function cvNuevoUUID(){
 
 function normalizarDB(){
   if(!DB.nid) DB.nid = 1;
-  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
     .forEach(k => { if(!DB[k]) DB[k] = []; });
   if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
   if(!DB.marcasCombustibleCustom) DB.marcasCombustibleCustom = [];
@@ -53,7 +54,7 @@ function normalizarDB(){
   if(!DB.config.umbralPorcentajeAvisoVencimiento) DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
 
   // Backfill uuid/lastModified para todas las colecciones (necesario para merge Drive)
-  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
     .forEach(k => DB[k].forEach(r => {
       if(!r.uuid) r.uuid = cvNuevoUUID();
       if(!r.lastModified) r.lastModified = Date.now();
@@ -302,6 +303,7 @@ async function cvConectarYSubirDesdeSalir(mobile){
   }
 }
 
+
 function cvCerrarAppFinal(){
   window.close();
   // Fallback: la mayoría de navegadores bloquean window.close() en pestañas
@@ -334,7 +336,7 @@ async function cvSubirDrive(){
   try{
     const remoto = await DriveSync.bajarBackup();
     if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
-      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
         .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
       if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
       normalizarDB();
@@ -357,7 +359,7 @@ async function cvSincronizarDrive(silencioso){
       if(DEV_MODE){
         DB = remoto;
       } else {
-        ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+        ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
           .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
         if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
       }
@@ -377,13 +379,14 @@ async function cvSincronizarDrive(silencioso){
   }
 }
 
-// ── SYNC RESTRINGIDO PARA CELULAR (solo cargas de combustible) ─────────────
-// El celular NUNCA debe mergear ni subir vehículos, mantenimientos,
-// componentes, gastos ni alertas: si el teléfono tiene una copia vieja o
-// parcial de esas colecciones (por ejemplo porque hace tiempo no abre la
-// app completa), no debe poder pisarlas ni "resucitar" datos viejos en
-// Drive. El celular es de solo lectura para todo lo que no sea `cargas`;
-// para `cargas` sí aporta lo nuevo, mergeado por uuid/lastModified.
+// ── SYNC RESTRINGIDO PARA CELULAR (solo cargas de combustible y novedades) ──
+// El celular NUNCA debe mergear ni subir vehículos, mantenimientos programados
+// o realizados, componentes, gastos ni alertas: si el teléfono tiene una copia
+// vieja o parcial de esas colecciones (por ejemplo porque hace tiempo no abre
+// la app completa), no debe poder pisarlas ni "resucitar" datos viejos en
+// Drive. El celular es de solo lectura para todo lo que no sea `cargas` o
+// `novedades` (altas nuevas); para esas dos sí aporta lo nuevo, mergeado por
+// uuid/lastModified. Resolver/editar/eliminar una novedad sigue siendo PC-only.
 const COLECCIONES_SOLO_PC = ['vehiculos','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas'];
 
 async function cvSubirDriveMobil(){
@@ -392,15 +395,22 @@ async function cvSubirDriveMobil(){
     const remoto = await DriveSync.bajarBackup();
     if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
       const cargasMergeadas = cvMergeColeccion(DB.cargas, remoto.cargas);
-      // Se sube una copia de lo remoto con SOLO `cargas` actualizado; todo
-      // lo demás viaja tal cual estaba en Drive, nunca la versión local del celu.
-      const dbParaSubir = Object.assign({}, remoto, { cargas: cargasMergeadas });
+      // `novedades` se mergea igual que `cargas`: el cel puede CREAR novedades
+      // pendientes sin perderlas. Resolver/editar/eliminar sigue restringido
+      // a PC (ver guardas esMobile() en esos modales), así que del cel solo
+      // pueden llegar altas nuevas, nunca cambios sobre novedades existentes.
+      const novedadesMergeadas = cvMergeColeccion(DB.novedades, remoto.novedades);
+      // Se sube una copia de lo remoto con `cargas`/`novedades` actualizados;
+      // todo lo demás viaja tal cual estaba en Drive, nunca la versión local del celu.
+      const dbParaSubir = Object.assign({}, remoto, { cargas: cargasMergeadas, novedades: novedadesMergeadas });
       if(DB.nid > (remoto.nid||0)) dbParaSubir.nid = DB.nid;
       await DriveSync.subirBackup(dbParaSubir);
       // Reflejar localmente lo que había en Drive (vehículos, config, etc.)
-      // para que el selector/sugerencias del celu estén al día — solo lectura.
+      // para que el selector/sugerencias del celu estén al día — solo lectura,
+      // salvo cargas y novedades que sí se mergean.
       COLECCIONES_SOLO_PC.forEach(k => { DB[k] = remoto[k] || DB[k]; });
       DB.cargas = cargasMergeadas;
+      DB.novedades = novedadesMergeadas;
       if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
       normalizarDB();
       localStorage.setItem(SKEY, JSON.stringify(DB));
@@ -455,7 +465,7 @@ async function cvBorrarTodo(){
 
   DB = {
     nid: 1,
-    vehiculos: [], cargas: [], mantenimientosProgramados: [], mantenimientosRealizados: [],
+    vehiculos: [], cargas: [], mantenimientosProgramados: [], mantenimientosRealizados: [], novedades: [],
     componentes: [], gastosFijos: [], gastosVariables: [], alertas: [],
     tiposComponenteCustom: [],
     config: { vehiculoActivo: null }
@@ -588,7 +598,7 @@ function editarVehiculo(uuid, datos){
 function eliminarVehiculo(uuid){
   if(!confirm('¿Eliminar este vehículo y TODOS sus datos asociados (cargas, mantenimientos, componentes, gastos)? Esta acción no se puede deshacer.')) return;
   DB.vehiculos = DB.vehiculos.filter(v=>v.uuid!==uuid);
-  ['cargas','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas']
+  ['cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
     .forEach(k => { DB[k] = DB[k].filter(r => r.vehiculoId !== uuid); });
   if(DB.config.vehiculoActivo === uuid) DB.config.vehiculoActivo = DB.vehiculos[0] ? DB.vehiculos[0].uuid : null;
   save();
@@ -757,6 +767,7 @@ function editarMantenimientoProgramado(uuid, datos){
   tocar(m); save();
 }
 function eliminarMantenimientoProgramado(uuid){
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este mantenimiento programado y su historial de realizaciones?')) return;
   DB.mantenimientosProgramados = DB.mantenimientosProgramados.filter(m=>m.uuid!==uuid);
   DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.mantenimientoProgramadoId!==uuid);
@@ -782,6 +793,7 @@ function registrarMantenimientoRealizado(datos){
     uuid: cvNuevoUUID(),
     mantenimientoProgramadoId: datos.mantenimientoProgramadoId || null,
     nombreLibre: datos.nombreLibre || '', // solo se usa cuando no hay mantenimientoProgramadoId (mantenimiento a demanda)
+    origenNovedadId: datos.origenNovedadId || null, // si viene de resolver una novedad, referencia a DB.novedades
     vehiculoId: datos.vehiculoId,
     kilometraje_realizado: Number(datos.kilometraje_realizado),
     fecha: datos.fecha || hoyISO(),
@@ -799,10 +811,101 @@ function registrarMantenimientoRealizado(datos){
   return r;
 }
 function eliminarMantenimientoRealizado(uuid){
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este registro de mantenimiento realizado?')) return;
+  const r = DB.mantenimientosRealizados.find(m=>m.uuid===uuid);
+  // Si este registro vino de resolver una novedad, la novedad vuelve a quedar pendiente
+  if(r && r.origenNovedadId){
+    const nov = DB.novedades.find(n=>n.uuid===r.origenNovedadId);
+    if(nov){
+      Object.assign(nov, { fecha_solucion:null, km_solucion:null, costo:0, mantenimientoRealizadoId:null });
+      tocar(nov);
+    }
+  }
   DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.uuid!==uuid);
   save();
   goTo('mantenimientos');
+}
+
+// ── NOVEDADES / FALLAS ────────────────────────────────────────────────────────
+// Registro de problemas detectados en el auto (ruidos, testigos, pérdidas, etc.)
+// que todavía no fueron atendidos. A diferencia de un mantenimiento a demanda
+// (que ya se hizo), una novedad puede quedar "pendiente" un tiempo antes de
+// resolverse. Al resolverla se genera automáticamente un mantenimientoRealizado
+// "a demanda" para que el costo sume al $/km igual que cualquier otro
+// mantenimiento, sin duplicar la lógica de costoPorKm/gastoTotalDelPeriodo.
+function novedadesDeVehiculo(vehiculoId){
+  return DB.novedades.filter(n=>n.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha_ocurrencia)-new Date(a.fecha_ocurrencia));
+}
+function novedadesPendientes(vehiculoId){
+  return novedadesDeVehiculo(vehiculoId).filter(n=>!n.fecha_solucion);
+}
+
+function crearNovedad(datos){
+  const n = tocar({
+    uuid: cvNuevoUUID(),
+    vehiculoId: datos.vehiculoId,
+    descripcion: datos.descripcion,
+    gravedad: datos.gravedad, // 'baja' | 'media' | 'alta' | 'critica'
+    fecha_ocurrencia: datos.fecha_ocurrencia || hoyISO(),
+    km_ocurrencia: Number(datos.km_ocurrencia),
+    fecha_solucion: null,
+    km_solucion: null,
+    costo: 0,
+    mantenimientoRealizadoId: null
+  });
+  DB.novedades.push(n);
+  save();
+  return n;
+}
+function editarNovedad(uuid, datos){
+  const n = DB.novedades.find(x=>x.uuid===uuid);
+  if(!n) return;
+  Object.assign(n, {
+    descripcion: datos.descripcion,
+    gravedad: datos.gravedad,
+    fecha_ocurrencia: datos.fecha_ocurrencia,
+    km_ocurrencia: Number(datos.km_ocurrencia)
+  });
+  tocar(n); save();
+}
+function eliminarNovedad(uuid){
+  if(esMobile()){ alert('⚠️ Resolver, editar o eliminar novedades se hace desde la PC. Desde el cel podés cargar novedades nuevas, pero no modificar las existentes.'); return; }
+  if(!confirm('¿Eliminar esta novedad? Si ya fue resuelta, también se borra el registro de mantenimiento asociado.')) return;
+  const n = DB.novedades.find(x=>x.uuid===uuid);
+  if(n && n.mantenimientoRealizadoId){
+    DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.uuid!==n.mantenimientoRealizadoId);
+  }
+  DB.novedades = DB.novedades.filter(x=>x.uuid!==uuid);
+  save();
+  goTo('mantenimientos');
+}
+function resolverNovedad(uuid, datos){
+  const n = DB.novedades.find(x=>x.uuid===uuid);
+  if(!n) return;
+  const costo = Number(datos.costo)||0;
+  const fecha_solucion = datos.fecha_solucion || hoyISO();
+  const km_solucion = Number(datos.km_solucion);
+  // Genera el mantenimiento realizado que suma al costo por km, igual que un
+  // mantenimiento a demanda cualquiera.
+  const realizado = registrarMantenimientoRealizado({
+    mantenimientoProgramadoId: null,
+    nombreLibre: '⚠️ ' + n.descripcion,
+    origenNovedadId: n.uuid,
+    vehiculoId: n.vehiculoId,
+    kilometraje_realizado: km_solucion,
+    fecha: fecha_solucion,
+    notas: datos.notas || '',
+    costo
+  });
+  Object.assign(n, { fecha_solucion, km_solucion, costo, mantenimientoRealizadoId: realizado.uuid });
+  tocar(n); save();
+}
+function etiquetaGravedad(g){
+  return { baja:'Baja', media:'Media', alta:'Alta', critica:'Crítica' }[g] || g;
+}
+function claseGravedad(g){
+  return { baja:'g-baja', media:'g-media', alta:'g-alta', critica:'g-critica' }[g] || '';
 }
 
 // Cruce de km con mantenimientos programados. Se ejecuta al cargar combustible.
@@ -826,7 +929,7 @@ function verificarMantenimientos(vehiculoId, kmActual){
           proximoKmEsperado: proximoKm,
           fecha: hoyISO(),
           atendida: false,
-          mensaje: `🔧 Toca "${prog.nombre_servicio}" (programado a los ${fmtKm(proximoKm)}, ya llevás ${fmtKm(kmActual)})`
+          mensaje: `🔧️ Toca "${prog.nombre_servicio}" (programado a los ${fmtKm(proximoKm)}, ya llevás ${fmtKm(kmActual)})`
         });
         DB.alertas.push(alerta);
         disparadas.push(alerta);
@@ -1316,7 +1419,7 @@ function renderDashboard(){
     </div>
 
     <div class="card">
-      <div class="ch"><div class="ct">🔧 Próximos mantenimientos</div></div>
+      <div class="ch"><div class="ct">🔧️ Próximos mantenimientos</div></div>
       <div class="card-body twrap">
         ${renderTablaProximosMantenimientos(v.uuid, km)}
       </div>
@@ -1408,7 +1511,7 @@ function renderCombustible(){
         <td>${fmtRendimiento(c.rendimiento_calculado)}</td>
         <td>${c.ubicacion ? `<a href="https://www.google.com/maps?q=${c.ubicacion.lat},${c.ubicacion.lng}" target="_blank" rel="noopener" title="${c.ubicacion.direccion ? escHtml(c.ubicacion.direccion) : 'Ver ubicación en el mapa'}">📍</a>` : '—'}</td>
         <td style="white-space:nowrap">
-          <button class="btn btn-sm" onclick="modalEditarCarga('${c.uuid}')">✎</button>
+          <button class="btn btn-sm btn-e" onclick="modalEditarCarga('${c.uuid}')">✎</button>
           <button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button>
         </td>
       </tr>`).join('')}
@@ -1555,14 +1658,35 @@ function renderMantenimientos(){
   const v = vehiculoActivo();
   const km = kmActualVehiculo(v.uuid);
   document.getElementById('pacts').innerHTML = `
+    <button class="btn btn-sm" style="border-color:#d29922;color:#d29922" onclick="modalNuevaNovedad()">+ Novedad</button>
     <button class="btn btn-sm" onclick="modalMantenimientoADemanda()">+ A demanda</button>
     <button class="btn btn-p btn-sm" onclick="modalNuevoMantenimientoProgramado()">+ Programar servicio</button>
   `;
   const progs = DB.mantenimientosProgramados.filter(p=>p.vehiculoId===v.uuid);
+  const pendientes = novedadesPendientes(v.uuid);
 
   document.getElementById('content').innerHTML = `
     <div class="card">
-      <div class="ch"><div class="ct">🔧 Servicios programados</div></div>
+      <div class="ch"><div class="ct">⚠️ Novedades pendientes${pendientes.length?` <span class="text2" style="font-weight:400">(${pendientes.length})</span>`:''}</div></div>
+      <div class="card-body twrap">
+        ${!pendientes.length ? `<div class="empty">Sin novedades pendientes.</div>` : `
+        <table><thead><tr><th>Descripción</th><th>Gravedad</th><th>Ocurrida</th><th></th></tr></thead><tbody>
+        ${pendientes.map(n=>`<tr>
+            <td>${escHtml(n.descripcion)}</td>
+            <td><span class="pill ${claseGravedad(n.gravedad)}">${etiquetaGravedad(n.gravedad)}</span></td>
+            <td class="mono">${fmtFecha(n.fecha_ocurrencia)} · ${fmtKm(n.km_ocurrencia)}</td>
+            <td style="white-space:nowrap">
+              <button class="btn btn-sm btn-g" onclick="modalResolverNovedad('${n.uuid}')">✓ Resolver</button>
+              <button class="btn btn-sm btn-e" onclick="modalEditarNovedad('${n.uuid}')">✎</button>
+              <button class="btn btn-sm btn-d" onclick="eliminarNovedad('${n.uuid}')">✕</button>
+            </td>
+          </tr>`).join('')}
+        </tbody></table>`}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div class="ct">🔧️ Servicios programados</div></div>
       <div class="card-body twrap">
         ${!progs.length ? `<div class="empty">No hay servicios programados todavía.</div>` : `
         <table><thead><tr><th>Servicio</th><th>Intervalo</th><th>Último realizado</th><th>Próximo km</th><th></th></tr></thead><tbody>
@@ -1576,8 +1700,10 @@ function renderMantenimientos(){
             <td>${ultimo ? fmtKm(ultimo.kilometraje_realizado)+' · '+fmtFecha(ultimo.fecha) : '—'}</td>
             <td class="${faltan<=0?'red':(faltan<1000?'amber':'')}">${fmtKm(proximoKm)} ${faltan<=0?'⚠️':''}</td>
             <td style="white-space:nowrap">
-              <button class="btn btn-sm btn-g" onclick="modalRegistrarMantenimiento('${p.uuid}')">✓ Registrar</button>
-              <button class="btn btn-sm" onclick="modalEditarMantenimientoProgramado('${p.uuid}')">✎</button>
+              ${faltan<=0
+                ? `<button class="btn btn-sm btn-g" onclick="modalRegistrarMantenimiento('${p.uuid}')">✓ Registrar</button>`
+                : `<span class="text3" style="font-size:11px">Faltan ${fmtKm(faltan)}</span>`}
+              <button class="btn btn-sm btn-e" onclick="modalEditarMantenimientoProgramado('${p.uuid}')">✎</button>
               <button class="btn btn-sm btn-d" onclick="eliminarMantenimientoProgramado('${p.uuid}')">✕</button>
             </td>
           </tr>`;
@@ -1601,7 +1727,10 @@ function renderHistorialMantenimientos(vehiculoId){
   return `<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Km</th><th>Costo</th><th>Notas</th><th></th></tr></thead><tbody>
     ${realizados.map(r=>{
       const prog = DB.mantenimientosProgramados.find(p=>p.uuid===r.mantenimientoProgramadoId);
-      const nombre = prog ? escHtml(prog.nombre_servicio) : (r.nombreLibre ? escHtml(r.nombreLibre)+' <span class="text3" style="font-size:10px">(a demanda)</span>' : '—');
+      const tag = r.origenNovedadId
+        ? ' <span style="background:rgba(210,153,34,.1);color:#d29922;border:1px solid rgba(210,153,34,.25);border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700">novedad</span>'
+        : (prog ? '' : ' <span class="text3" style="font-size:10px">(a demanda)</span>');
+      const nombre = prog ? escHtml(prog.nombre_servicio) : (r.nombreLibre ? escHtml(r.nombreLibre)+tag : '—');
       return `<tr>
         <td class="mono">${fmtFecha(r.fecha)}</td>
         <td>${nombre}</td>
@@ -1615,14 +1744,21 @@ function renderHistorialMantenimientos(vehiculoId){
 }
 
 function modalNuevoMantenimientoProgramado(){
-  abrirModal('🔧 Programar servicio', `
-    <div class="fg"><label>Nombre del servicio</label><input type="text" id="f-nombre" placeholder="Ej: Cambio de aceite"></div>
-    <div class="fg"><label>Intervalo (cada cuántos km)</label><input type="number" inputmode="numeric" id="f-intervalo" placeholder="Ej: 10000"></div>
-    <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional"></textarea></div>
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
+  abrirModal('🔧️ Programar servicio', `
+    <div class="fg"><label>Nombre del servicio</label><input type="text" id="f-nombre" placeholder="Ej: Cambio de aceite" autocomplete="off" value=""></div>
+    <div class="fg"><label>Intervalo (cada cuántos km)</label><input type="number" inputmode="numeric" id="f-intervalo" placeholder="Ej: 10000" autocomplete="off" value=""></div>
+    <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional" autocomplete="off"></textarea></div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
     <button class="btn btn-p" onclick="guardarNuevoMantenimientoProgramado()">Guardar</button>
   `);
+  setTimeout(()=>{
+    // Por si el navegador igual intenta autocompletar con datos de otro
+    // servicio ya cargado (los ids se reutilizan entre modales de la app).
+    ['f-nombre','f-intervalo','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('f-nombre').focus();
+  }, 60);
 }
 function guardarNuevoMantenimientoProgramado(){
   const v = vehiculoActivo();
@@ -1634,6 +1770,7 @@ function guardarNuevoMantenimientoProgramado(){
   cerrarModal(); goTo('mantenimientos');
 }
 function modalEditarMantenimientoProgramado(uuid){
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const p = DB.mantenimientosProgramados.find(x=>x.uuid===uuid);
   if(!p) return;
   abrirModal('✎ Editar servicio', `
@@ -1646,6 +1783,7 @@ function modalEditarMantenimientoProgramado(uuid){
   `);
 }
 function modalRegistrarMantenimiento(mantenimientoProgramadoId){
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
   const prog = DB.mantenimientosProgramados.find(p=>p.uuid===mantenimientoProgramadoId);
   const kmSugerido = kmActualVehiculo(v.uuid);
@@ -1679,9 +1817,10 @@ function guardarMantenimientoRealizado(mantenimientoProgramadoId){
 // No genera un mantenimientoProgramado ni alertas futuras, solo queda en el
 // historial y suma al costo por km igual que cualquier otro mantenimiento.
 function modalMantenimientoADemanda(){
+  if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
   const kmSugerido = kmActualVehiculo(v.uuid);
-  abrirModal('🔧 Mantenimiento a demanda', `
+  abrirModal('🔧️ Mantenimiento a demanda', `
     <div class="fg">
       <label>Servicio realizado</label>
       <input type="text" id="f-nombreLibre" list="sugerencias-demanda" placeholder="Ej: Cambio de lámpara">
@@ -1716,6 +1855,115 @@ function guardarMantenimientoADemanda(){
   cerrarModal(); goTo('mantenimientos');
 }
 
+function modalNuevaNovedad(){
+  const v = vehiculoActivo();
+  const kmSugerido = kmActualVehiculo(v.uuid);
+  abrirModal('⚠️ Nueva novedad', `
+    <div class="fg"><label>Descripción</label><textarea id="f-descripcion" placeholder="Ej: ruido metálico en tren delantero al frenar"></textarea></div>
+    <div class="fgrid">
+      <div class="fg"><label>Fecha ocurrencia</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Km ocurrencia</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
+    </div>
+    <div class="fg">
+      <label>Gravedad</label>
+      <select id="f-gravedad">
+        <option value="baja">Baja</option>
+        <option value="media" selected>Media</option>
+        <option value="alta">Alta</option>
+        <option value="critica">Crítica</option>
+      </select>
+    </div>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarNuevaNovedad()">Guardar</button>
+  `);
+  setTimeout(()=>document.getElementById('f-descripcion').focus(), 50);
+}
+function guardarNuevaNovedad(){
+  const v = vehiculoActivo();
+  const descripcion = document.getElementById('f-descripcion').value.trim();
+  const km_ocurrencia = Number(document.getElementById('f-km').value);
+  const fecha_ocurrencia = new Date(document.getElementById('f-fecha').value).toISOString();
+  const gravedad = document.getElementById('f-gravedad').value;
+  if(!descripcion){ alert('Describí la novedad.'); return; }
+  if(!km_ocurrencia){ alert('Ingresá el kilometraje.'); return; }
+  crearNovedad({ vehiculoId: v.uuid, descripcion, km_ocurrencia, fecha_ocurrencia, gravedad });
+  cerrarModal();
+  const slot = document.getElementById('vr-confirm-slot');
+  if(slot){
+    // Estamos en la vista rápida del cel: confirmación inline, sin entrar a la app completa.
+    slot.innerHTML = `<div class="vr-confirm">✅ Novedad guardada. La vas a ver en Mantenimientos cuando entres desde la PC.</div>`;
+  } else {
+    goTo('mantenimientos');
+  }
+}
+
+function modalEditarNovedad(uuid){
+  if(esMobile()){ alert('⚠️ Resolver, editar o eliminar novedades se hace desde la PC. Desde el cel podés cargar novedades nuevas, pero no modificar las existentes.'); return; }
+  const n = DB.novedades.find(x=>x.uuid===uuid);
+  if(!n) return;
+  abrirModal('✎ Editar novedad', `
+    <div class="fg"><label>Descripción</label><textarea id="f-descripcion">${escHtml(n.descripcion)}</textarea></div>
+    <div class="fgrid">
+      <div class="fg"><label>Fecha ocurrencia</label><input type="date" id="f-fecha" value="${n.fecha_ocurrencia.slice(0,10)}"></div>
+      <div class="fg"><label>Km ocurrencia</label><input type="number" inputmode="numeric" id="f-km" value="${n.km_ocurrencia}"></div>
+    </div>
+    <div class="fg">
+      <label>Gravedad</label>
+      <select id="f-gravedad">
+        <option value="baja" ${n.gravedad==='baja'?'selected':''}>Baja</option>
+        <option value="media" ${n.gravedad==='media'?'selected':''}>Media</option>
+        <option value="alta" ${n.gravedad==='alta'?'selected':''}>Alta</option>
+        <option value="critica" ${n.gravedad==='critica'?'selected':''}>Crítica</option>
+      </select>
+    </div>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarEdicionNovedad('${uuid}')">Guardar</button>
+  `);
+}
+function guardarEdicionNovedad(uuid){
+  const descripcion = document.getElementById('f-descripcion').value.trim();
+  const km_ocurrencia = Number(document.getElementById('f-km').value);
+  const fecha_ocurrencia = new Date(document.getElementById('f-fecha').value).toISOString();
+  const gravedad = document.getElementById('f-gravedad').value;
+  if(!descripcion){ alert('Describí la novedad.'); return; }
+  if(!km_ocurrencia){ alert('Ingresá el kilometraje.'); return; }
+  editarNovedad(uuid, { descripcion, km_ocurrencia, fecha_ocurrencia, gravedad });
+  cerrarModal(); goTo('mantenimientos');
+}
+
+function modalResolverNovedad(uuid){
+  if(esMobile()){ alert('⚠️ Resolver, editar o eliminar novedades se hace desde la PC. Desde el cel podés cargar novedades nuevas, pero no modificar las existentes.'); return; }
+  const n = DB.novedades.find(x=>x.uuid===uuid);
+  if(!n) return;
+  const v = vehiculoActivo();
+  const kmSugerido = kmActualVehiculo(v.uuid);
+  abrirModal(`✓ Resolver novedad`, `
+    <p class="text2" style="font-size:12px;margin-bottom:10px">${escHtml(n.descripcion)}</p>
+    <div class="fgrid">
+      <div class="fg"><label>Fecha solución</label><input type="date" id="f-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Km solución</label><input type="number" inputmode="numeric" id="f-km" value="${kmSugerido||''}" onfocus="this.select()"></div>
+    </div>
+    <div class="fg"><label>Costo</label><input type="number" inputmode="decimal" id="f-costo" step="0.01" placeholder="$"></div>
+    <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional"></textarea></div>
+    <p class="text3" style="font-size:10px">Al guardar se agrega al Historial de mantenimientos y suma al $/km.</p>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarResolucionNovedad('${uuid}')">Guardar</button>
+  `);
+}
+function guardarResolucionNovedad(uuid){
+  const km_solucion = Number(document.getElementById('f-km').value);
+  const costoRaw = document.getElementById('f-costo').value;
+  const fecha_solucion = new Date(document.getElementById('f-fecha').value).toISOString();
+  const notas = document.getElementById('f-notas').value.trim();
+  if(!km_solucion){ alert('Ingresá el kilometraje.'); return; }
+  if(costoRaw === ''){ alert('Ingresá el costo (poné 0 si fue sin cargo).'); return; }
+  resolverNovedad(uuid, { km_solucion, costo: Number(costoRaw), fecha_solucion, notas });
+  cerrarModal(); goTo('mantenimientos');
+}
+
 // ── VISTA: COMPONENTES (neumáticos / batería) ────────────────────────────────
 function renderComponentes(){
   const v = vehiculoActivo();
@@ -1745,7 +1993,7 @@ function renderComponentes(){
                   <div class="text3" style="font-size:11px">Instalado: ${fmtKm(c.km_instalacion)} · ${fmtFecha(c.fecha_instalacion)}${c.km_instalacion_estimado?' <span class="amber">⚠️ estimado</span>':' ✅'}</div>
                 </div>
                 <div style="text-align:right">
-                  <button class="btn btn-sm" onclick="modalEditarComponente('${c.uuid}')">✎ Editar</button>
+                  <button class="btn btn-sm btn-e" onclick="modalEditarComponente('${c.uuid}')">✎ Editar</button>
                   <button class="btn btn-sm btn-g" onclick="modalReemplazarComponente('${c.uuid}')">🔄 Reemplazar</button>
                   <button class="btn btn-sm btn-d" onclick="eliminarComponente('${c.uuid}')">✕</button>
                 </div>
@@ -2177,7 +2425,7 @@ function renderVehiculos(){
           <div class="proy-card-footer">
             <span class="proy-card-cat">${v.uuid===DB.config.vehiculoActivo?'✅ Activo':''}</span>
             <div>
-              <button class="btn btn-sm" onclick="event.stopPropagation();modalEditarVehiculo('${v.uuid}')">✎</button>
+              <button class="btn btn-sm btn-e" onclick="event.stopPropagation();modalEditarVehiculo('${v.uuid}')">✎</button>
               <button class="btn btn-sm btn-d" onclick="event.stopPropagation();eliminarVehiculo('${v.uuid}')">✕</button>
             </div>
           </div>
@@ -2606,6 +2854,7 @@ function renderVistaRapidaMobile(){
       <div class="vr-gps" id="vr-gps-status">📍 Obteniendo ubicación…</div>
 
       <button class="vr-btn-main" onclick="guardarCargaRapidaMobile()">Guardar carga</button>
+      <button class="vr-btn-main" style="background:transparent;border:1px solid #d29922;color:#d29922;margin-top:8px" onclick="modalNuevaNovedad()">⚠️ Reportar novedad</button>
       <div class="vr-full-link">
         <a onclick="abrirAppCompletaDesdeMobile()" style="color:var(--primary-light);cursor:pointer">Ver app completa</a>
         &nbsp;·&nbsp;
@@ -2693,7 +2942,6 @@ function cvReverseGeocodeMobile(ubic){
       }
     });
 }
-
 
 function guardarCargaRapidaMobile(){
   const v = vehiculoActivo();
