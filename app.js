@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.65';
+const VERSION = 'v0.66';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -904,6 +904,9 @@ function resolverNovedad(uuid, datos){
 function etiquetaGravedad(g){
   return { baja:'Baja', media:'Media', alta:'Alta', critica:'Crítica' }[g] || g;
 }
+function ordenGravedad(g){
+  return { critica:4, alta:3, media:2, baja:1 }[g] || 0;
+}
 function claseGravedad(g){
   return { baja:'g-baja', media:'g-media', alta:'g-alta', critica:'g-critica' }[g] || '';
 }
@@ -1391,6 +1394,11 @@ function renderDashboard(){
   const costoKm = calcularCostoPorKm(v.uuid, desde.toISOString(), hasta);
 
   const alertas = alertasActivas(v.uuid);
+  const novedadesDash = novedadesPendientes(v.uuid).slice().sort((a,b)=>{
+    const dg = ordenGravedad(b.gravedad) - ordenGravedad(a.gravedad);
+    if(dg) return dg;
+    return new Date(a.fecha_ocurrencia) - new Date(b.fecha_ocurrencia); // más antigua (más tiempo sin resolver) primero
+  });
 
   document.getElementById('content').innerHTML = `
     ${alertas.length ? `
@@ -1409,6 +1417,18 @@ function renderDashboard(){
       <div class="stat"><div class="stat-n">${fmtMoney(gastoMes)}</div><div class="stat-l">Combustible este mes</div></div>
       <div class="stat"><div class="stat-n">${fmtMoney(gastoAnio)}</div><div class="stat-l">Combustible acumulado ${new Date().getFullYear()}</div></div>
       <div class="stat"><div class="stat-n">${costoKm ? fmtMoney(costoKm.costoPorKmTotal) : '—'}</div><div class="stat-l">Costo / km (12m)</div></div>
+      <div class="stat" style="min-width:230px;max-width:280px;text-align:left;cursor:pointer" onclick="goTo('mantenimientos')">
+        <div class="stat-l" style="margin-bottom:6px">⚠️ Novedades pendientes${novedadesDash.length?` (${novedadesDash.length})`:''}</div>
+        ${!novedadesDash.length ? `<div class="text3" style="font-size:11px">Sin novedades pendientes.</div>` : novedadesDash.slice(0,4).map(n=>{
+          const dias = Math.max(0, Math.floor((Date.now()-new Date(n.fecha_ocurrencia))/86400000));
+          return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-top:1px solid var(--border);font-size:11px;text-align:left">
+            <span class="pill ${claseGravedad(n.gravedad)}" style="flex-shrink:0">${etiquetaGravedad(n.gravedad)}</span>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(n.descripcion)}">${escHtml(n.descripcion)}</span>
+            <span class="text3" style="flex-shrink:0">${dias}d</span>
+          </div>`;
+        }).join('')}
+        ${novedadesDash.length>4?`<div class="text3" style="font-size:10px;margin-top:4px">+${novedadesDash.length-4} más</div>`:''}
+      </div>
     </div>
 
     <div class="card">
