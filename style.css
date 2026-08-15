@@ -62,6 +62,12 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 .p-fin{background:rgba(63,185,80,.12);color:#3fb950;border:1px solid rgba(63,185,80,.25)}
 .p-cancel{background:rgba(72,79,88,.2);color:#8b949e;border:1px solid rgba(72,79,88,.4)}
 
+/* ── GRAVEDAD DE NOVEDADES ────────────────────────────────── */
+.g-baja{background:rgba(63,185,80,.12);color:#3fb950;border:1px solid rgba(63,185,80,.25)}
+.g-media{background:rgba(210,153,34,.12);color:#d29922;border:1px solid rgba(210,153,34,.25)}
+.g-alta{background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25)}
+.g-critica{background:#f85149;color:#1a0505;border:1px solid #f85149}
+
 /* ── TABLAS ───────────────────────────────────────────────── */
 .twrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -85,6 +91,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .btn-g:hover{background:#1f5a1f}
 .btn-d{background:#4a1a1a;color:#f85149;border-color:#6a2d2d}
 .btn-d:hover{background:#5a1f1f}
+.btn-e{background:#173a52;color:#58a6ff;border-color:#2a5478}
+.btn-e:hover{background:#1e4a68}
 .btn-sm{padding:3px 8px;font-size:11px}
 
 /* ── MODAL ────────────────────────────────────────────────── */
@@ -167,6 +175,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .nav-overlay.open{display:block}
   .nav-toggle{display:block}
   .main{width:100%}
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .pacts{width:100%;order:3}
 }
 
 /* ── PROGRESS (vida útil componentes) ────────────────────── */
