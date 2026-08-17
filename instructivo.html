@@ -222,6 +222,7 @@
   <a href="#vencimientos">⚠️ Próximos vencimientos</a>
   <a href="#combustible">⛽ Combustible</a>
   <a href="#mantenimientos">🔧 Mantenimientos</a>
+  <a href="#novedades">⚠️ Novedades</a>
   <a href="#componentes">🛞 Componentes</a>
   <a href="#gastos">💰 Gastos</a>
   <a href="#reportes">📈 Reportes</a>
@@ -300,6 +301,7 @@
     <ul>
       <li>Kilometraje actual, último rendimiento y promedio de los últimos 3 meses</li>
       <li>Gasto en combustible del mes y costo por km de los últimos 12 meses</li>
+      <li>Card de <b>novedades pendientes</b>, a la derecha de esos KPIs, ordenadas por gravedad (crítica primero) y por días sin resolver — tocarla te lleva directo a Mantenimientos</li>
       <li>Últimas 5 cargas, próximos mantenimientos y estado de neumáticos/batería</li>
       <li>Alertas activas (mantenimiento vencido o componente por cambiar) arriba de todo</li>
     </ul>
@@ -349,24 +351,46 @@
 
   <div class="section" id="mantenimientos">
     <div class="section-header">
-      <div class="section-icon">🔧</div>
+      <div class="section-icon">🔧️</div>
       <div>
         <div class="section-title">Mantenimientos</div>
-        <div class="section-subtitle">Programados y a demanda</div>
+        <div class="section-subtitle">Programados, a demanda y novedades</div>
       </div>
     </div>
     <h2>🔁 Servicios programados</h2>
     <p>Para lo que se repite con un intervalo fijo de kilometraje: aceite, filtros, correa de distribución, etc.</p>
     <div class="steps">
-      <div class="step"><div class="step-num"></div><div class="step-body">Creás el servicio con un nombre y cada cuántos km se repite.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Creás el servicio con un nombre y cada cuántos km se repite. El formulario arranca vacío cada vez, aunque ya tengas otro servicio cargado.</div></div>
       <div class="step"><div class="step-num"></div><div class="step-body">La app calcula sola el próximo km en que toca, a partir del último registrado.</div></div>
       <div class="step"><div class="step-num"></div><div class="step-body">Cada vez que cargás combustible, se cruza el km nuevo contra todos los servicios programados. Si ya se pasó el km del próximo service, salta una alerta automática.</div></div>
     </div>
+    <div class="note">El botón <b>✓ Registrar</b> de un servicio programado solo aparece cuando el kilometraje actual ya llegó al próximo vencimiento — antes de eso ves "Faltan X km" en gris. Así no hace falta editar nada a mano entre un ciclo y otro: se activa solo cuando corresponde.</div>
     <h2>🔨 A demanda</h2>
     <p>Para todo lo puntual que <b>no</b> sigue un patrón fijo de km: cambio de lámpara, alineación y balanceo, lavado, escobillas, reparaciones eléctricas, etc.</p>
     <p>Se cargan con un nombre libre (hay sugerencias, pero podés tipear cualquier cosa), kilometraje, costo y notas. No generan alertas futuras — quedan en el historial y suman al costo por km igual que cualquier otro mantenimiento.</p>
     <div class="note">El <b>costo es obligatorio</b> en los dos tipos (poné 0 si fue sin cargo, pero no se puede dejar vacío) — así el costo por km nunca queda subestimado por un olvido. La <b>fecha de realización</b> también es editable, por si estás cargando un service que hiciste hace un tiempo y no fue "hoy".</div>
-    <div class="tip">Ambos tipos (programados y a demanda) aparecen juntos en el mismo historial, con la etiqueta <code>(a demanda)</code> para diferenciar los que no tienen recurrencia.</div>
+    <div class="tip">Ambos tipos (programados y a demanda) aparecen juntos en el mismo historial, con la etiqueta <code>(a demanda)</code> para diferenciar los que no tienen recurrencia. Las novedades resueltas (ver abajo) también caen ahí, con la etiqueta <code>novedad</code>.</div>
+  </div>
+
+  <div class="section" id="novedades">
+    <div class="section-header">
+      <div class="section-icon">⚠️</div>
+      <div>
+        <div class="section-title">Novedades</div>
+        <div class="section-subtitle">Fallas o problemas detectados, hasta que se resuelven</div>
+      </div>
+    </div>
+    <p>Pensada para anotar algo que notaste que anda mal en el auto (un ruido, un testigo prendido, una pérdida) en el momento en que lo detectás, aunque todavía no sepas cuándo ni cuánto va a salir arreglarlo. Vive dentro de Mantenimientos, en una card propia arriba de "Servicios programados".</p>
+    <div class="steps">
+      <div class="step"><div class="step-num"></div><div class="step-body">Cargás descripción, fecha y km de ocurrencia, y gravedad (baja / media / alta / crítica — solo define el color del badge, no cambia el orden ni dispara alertas).</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Queda en "Novedades pendientes" hasta que la resolvés.</div></div>
+      <div class="step"><div class="step-num"></div><div class="step-body">Al resolverla (✓ Resolver), cargás fecha, km y costo de la solución. Ahí se genera automáticamente un registro de mantenimiento "a demanda" — pasa a formar parte del Historial y suma al $/km, sin que tengas que cargarlo dos veces.</div></div>
+    </div>
+    <div class="note">Si borrás el registro del Historial que generó una novedad resuelta, la novedad <b>vuelve a quedar pendiente</b> — no se pierde el dato, por si borraste por error.</div>
+    <div class="tip">La card de "Novedades pendientes" del <a href="#dashboard">Dashboard</a> las ordena por gravedad y por tiempo sin resolver, para que las más urgentes/viejas salten a la vista primero.</div>
+    <h2>📱 Desde el celular</h2>
+    <p>Podés <b>crear</b> novedades nuevas desde el celular — hay un acceso directo "⚠️ Reportar novedad" en la pantalla de Carga rápida, no hace falta entrar a la app completa. Se sincroniza con la PC igual que las cargas de combustible.</p>
+    <div class="warning">Resolver, editar o eliminar una novedad <b>solo se puede hacer desde la PC</b>. Si lo intentás desde el celular, la app te avisa y no te deja continuar — es la misma restricción que ya existía para el resto de Mantenimientos (ver <a href="#drive">Sincronización con Drive</a>).</div>
   </div>
 
   <div class="section" id="componentes">
@@ -478,6 +502,7 @@
       <div class="step"><div class="step-num"></div><div class="step-body">El formulario queda limpio y listo para la próxima carga.</div></div>
       <div class="step"><div class="step-num"></div><div class="step-body">Cuando terminás, tocás <b>🚪 Guardar y salir</b>: hace snapshot local + backup a Drive, y confirma. La app queda abierta para la próxima vez (no se cierra sola, a diferencia de la PC).</div></div>
     </div>
+    <p>Debajo de "Guardar carga" hay un botón <b>⚠️ Reportar novedad</b> — sirve para anotar un problema que notaste en el auto (ruido, testigo, pérdida) sin tener que entrar a la app completa. Confirma en la misma pantalla y sincroniza sola, como las cargas.</p>
     <div class="tip">No hace falta "cerrar" la app en el celular después de cada carga — con tocar Guardar y salir una vez que terminaste ya quedó todo respaldado.</div>
   </div>
 
@@ -511,7 +536,7 @@
       <div class="step"><div class="step-num"></div><div class="step-body">Si además tocás Sincronizar manualmente, pasa lo mismo que en la sincronización automática, pero mostrando la confirmación en pantalla: la app baja lo que haya en Drive, lo combina con lo que tenés localmente (por registro, priorizando el más reciente) y vuelve a subir todo junto.</div></div>
     </div>
     <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente. Borrar un registro también viaja bien en el merge: queda marcado como borrado y ese borrado gana, en vez de que el registro viejo vuelva a aparecer.</div>
-    <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b>. Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
+    <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b> y las <b>novedades nuevas</b> (crearlas, no resolverlas/editarlas). Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
   </div>
 
   <div class="section" id="salir">
