@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.67';
+const VERSION = 'v0.70';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -575,6 +575,7 @@ function crearVehiculo(datos){
   const v = tocar({
     uuid: cvNuevoUUID(),
     nombre: datos.nombre,
+    propietario: datos.propietario || '',
     tipo: datos.tipo || 'Auto',
     marca: datos.marca || '',
     modelo: datos.modelo || '',
@@ -921,7 +922,7 @@ function textoListaParaTaller(vehiculoId){
     return new Date(a.fecha_ocurrencia) - new Date(b.fecha_ocurrencia);
   });
   let t = `🔧 Lista para el taller — ${fmtFecha(hoyISO())}\n`;
-  t += `Vehículo: ${v?v.patente:''} · ${fmtKm(km)}\n\n`;
+  t += `Vehículo: ${v?v.nombre:''}${v&&v.propietario?' ('+v.propietario+')':''} · ${fmtKm(km)}\n\n`;
   if(!pendientes.length){
     t += 'Sin novedades pendientes además del service.';
   } else {
@@ -1385,7 +1386,7 @@ function actualizarSelectorVehiculo(){
   if(!DB.vehiculos.length){ wrap.style.display='none'; return; }
   wrap.style.display = 'flex';
   sel.innerHTML = DB.vehiculos.map(v =>
-    `<option value="${v.uuid}" ${v.uuid===DB.config.vehiculoActivo?'selected':''}>${escHtml(v.nombre)}</option>`
+    `<option value="${v.uuid}" ${v.uuid===DB.config.vehiculoActivo?'selected':''}>${escHtml(v.nombre)}${v.propietario?' — '+escHtml(v.propietario):''}</option>`
   ).join('');
 }
 
@@ -2502,7 +2503,7 @@ function renderVehiculos(){
         return `<div class="proy-card">
           <div class="proy-card-num">${v.tipo}</div>
           <div class="proy-card-title">${escHtml(v.nombre)}</div>
-          <div class="proy-card-obj">${escHtml(v.marca)} ${escHtml(v.modelo)} ${v.anio?'· '+v.anio:''}<br>Km actual: ${fmtKm(km)}</div>
+          <div class="proy-card-obj">${v.propietario?'👤 '+escHtml(v.propietario)+'<br>':''}${escHtml(v.marca)} ${escHtml(v.modelo)} ${v.anio?'· '+v.anio:''}<br>Km actual: ${fmtKm(km)}</div>
           <div class="proy-card-footer">
             <span class="proy-card-cat">${v.uuid===DB.config.vehiculoActivo?'✅ Activo':''}</span>
             <div>
@@ -2518,6 +2519,7 @@ function renderVehiculos(){
 function modalNuevoVehiculo(){
   abrirModal('🚙 Nuevo vehículo', `
     <div class="fg"><label>Matrícula</label><input type="text" id="f-nombre" placeholder="Ej: AB123CD" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg"><label>Propietario</label><input type="text" id="f-propietario" placeholder="Nombre y apellido"></div>
     <div class="fgrid">
       <div class="fg"><label>Tipo</label><select id="f-tipo"><option>Auto</option><option>Moto</option></select></div>
       <div class="fg"><label>Año</label><input type="number" inputmode="numeric" id="f-anio"></div>
@@ -2537,6 +2539,7 @@ function guardarNuevoVehiculo(){
   if(!nombre){ alert('Ingresá la matrícula.'); return; }
   crearVehiculo({
     nombre, tipo: document.getElementById('f-tipo').value,
+    propietario: document.getElementById('f-propietario').value.trim(),
     marca: document.getElementById('f-marca').value.trim(),
     modelo: document.getElementById('f-modelo').value.trim(),
     anio: document.getElementById('f-anio').value,
@@ -2548,6 +2551,7 @@ function modalEditarVehiculo(uuid){
   const v = DB.vehiculos.find(x=>x.uuid===uuid);
   abrirModal('✎ Editar vehículo', `
     <div class="fg"><label>Matrícula</label><input type="text" id="f-nombre" value="${escHtml(v.nombre)}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg"><label>Propietario</label><input type="text" id="f-propietario" value="${escHtml(v.propietario||'')}" placeholder="Nombre y apellido"></div>
     <div class="fgrid">
       <div class="fg"><label>Tipo</label><select id="f-tipo"><option ${v.tipo==='Auto'?'selected':''}>Auto</option><option ${v.tipo==='Moto'?'selected':''}>Moto</option></select></div>
       <div class="fg"><label>Año</label><input type="number" inputmode="numeric" id="f-anio" value="${v.anio||''}"></div>
@@ -2558,7 +2562,7 @@ function modalEditarVehiculo(uuid){
     </div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
-    <button class="btn btn-p" onclick="editarVehiculo('${uuid}',{nombre:document.getElementById('f-nombre').value.trim(),tipo:document.getElementById('f-tipo').value,marca:document.getElementById('f-marca').value.trim(),modelo:document.getElementById('f-modelo').value.trim(),anio:document.getElementById('f-anio').value}); cerrarModal(); goTo('vehiculos');">Guardar</button>
+    <button class="btn btn-p" onclick="editarVehiculo('${uuid}',{nombre:document.getElementById('f-nombre').value.trim(),propietario:document.getElementById('f-propietario').value.trim(),tipo:document.getElementById('f-tipo').value,marca:document.getElementById('f-marca').value.trim(),modelo:document.getElementById('f-modelo').value.trim(),anio:document.getElementById('f-anio').value}); cerrarModal(); goTo('vehiculos');">Guardar</button>
   `);
 }
 
