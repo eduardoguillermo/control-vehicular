@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.66';
+const VERSION = 'v0.67';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -907,6 +907,59 @@ function etiquetaGravedad(g){
 function ordenGravedad(g){
   return { critica:4, alta:3, media:2, baja:1 }[g] || 0;
 }
+
+// ── LISTA PARA EL TALLER ─────────────────────────────────────────────────────
+// Texto listo para copiar/compartir con el mecánico cuando lleva el auto por
+// el service programado, para pedirle que revise/resuelva lo pendiente además
+// del service en sí.
+function textoListaParaTaller(vehiculoId){
+  const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
+  const km = kmActualVehiculo(vehiculoId);
+  const pendientes = novedadesPendientes(vehiculoId).slice().sort((a,b)=>{
+    const dg = ordenGravedad(b.gravedad) - ordenGravedad(a.gravedad);
+    if(dg) return dg;
+    return new Date(a.fecha_ocurrencia) - new Date(b.fecha_ocurrencia);
+  });
+  let t = `🔧 Lista para el taller — ${fmtFecha(hoyISO())}\n`;
+  t += `Vehículo: ${v?v.patente:''} · ${fmtKm(km)}\n\n`;
+  if(!pendientes.length){
+    t += 'Sin novedades pendientes además del service.';
+  } else {
+    pendientes.forEach(n=>{
+      t += `⚠️ [${etiquetaGravedad(n.gravedad)}] ${n.descripcion} (detectado ${fmtFecha(n.fecha_ocurrencia)}, ${fmtKm(n.km_ocurrencia)})\n`;
+    });
+  }
+  return t;
+}
+function modalListaParaTaller(){
+  const v = vehiculoActivo();
+  const texto = textoListaParaTaller(v.uuid);
+  const idTa = 'ta-lista-taller';
+  abrirModal('📋 Lista para el taller', `
+    <p class="text2" style="font-size:11px;margin-bottom:8px">Copiá o compartí esto para pedirle al mecánico que revise lo pendiente junto con el service programado.</p>
+    <textarea id="${idTa}" readonly style="width:100%;min-height:220px;font-family:monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px">${escHtml(texto)}</textarea>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cerrar</button>
+    ${navigator.share ? `<button class="btn" onclick="compartirListaTaller()">📤 Compartir</button>` : ''}
+    <button class="btn btn-p" onclick="copiarListaTaller()">📋 Copiar</button>
+  `);
+}
+function copiarListaTaller(){
+  const ta = document.getElementById('ta-lista-taller');
+  const texto = ta ? ta.value : '';
+  const btn = event.target;
+  const listo = ()=>{ const t=btn.textContent; btn.textContent='✓ Copiado'; setTimeout(()=>btn.textContent=t, 1500); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(listo).catch(()=>{ ta.select(); document.execCommand('copy'); listo(); });
+  } else {
+    ta.select(); document.execCommand('copy'); listo();
+  }
+}
+function compartirListaTaller(){
+  const ta = document.getElementById('ta-lista-taller');
+  const texto = ta ? ta.value : '';
+  if(navigator.share) navigator.share({ text: texto }).catch(()=>{});
+}
 function claseGravedad(g){
   return { baja:'g-baja', media:'g-media', alta:'g-alta', critica:'g-critica' }[g] || '';
 }
@@ -1260,6 +1313,14 @@ function mostrarModalVencimientos(){
   const items = calcularVencimientos(v.uuid);
   if(!items.length) return;
 
+  const hayMantenimientoDue = items.some(it=>it.tipo==='mantenimiento');
+  const pendNovedades = novedadesPendientes(v.uuid);
+  const avisoNovedades = (hayMantenimientoDue && pendNovedades.length) ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:10px;background:rgba(210,153,34,.08);border:1px dashed rgba(210,153,34,.35)">
+      <div style="font-size:12px">⚠️ Tenés <b>${pendNovedades.length}</b> novedad${pendNovedades.length>1?'es':''} pendiente${pendNovedades.length>1?'s':''} — aprovechá este service para pedirle al taller que las revise.</div>
+      <button class="btn btn-sm" onclick="cerrarModalVencimientos();modalListaParaTaller()">📋 Ver lista</button>
+    </div>` : '';
+
   const filas = items.map(it => {
     const color = it.urgente ? '#f85149' : '#d29922';
     const bg = it.urgente ? 'rgba(248,81,73,.1)' : 'rgba(210,153,34,.1)';
@@ -1290,7 +1351,7 @@ function mostrarModalVencimientos(){
         <h3>⚠️ Próximos vencimientos ${btnAyuda('vencimientos')}</h3>
         <button class="btn btn-sm" onclick="cerrarModalVencimientos()">✕</button>
       </div>
-      <div class="mbody">${filas}</div>
+      <div class="mbody">${avisoNovedades}${filas}</div>
       <div class="mfoot"><button class="btn" onclick="cerrarModalVencimientos()" style="width:100%">Cerrar</button></div>
     </div>
   `;
@@ -1687,7 +1748,7 @@ function renderMantenimientos(){
 
   document.getElementById('content').innerHTML = `
     <div class="card">
-      <div class="ch"><div class="ct">⚠️ Novedades pendientes${pendientes.length?` <span class="text2" style="font-weight:400">(${pendientes.length})</span>`:''}</div></div>
+      <div class="ch"><div class="ct">⚠️ Novedades pendientes${pendientes.length?` <span class="text2" style="font-weight:400">(${pendientes.length})</span>`:''}</div>${pendientes.length?`<button class="btn btn-sm" onclick="modalListaParaTaller()">📋 Lista para el taller</button>`:''}</div>
       <div class="card-body twrap">
         ${!pendientes.length ? `<div class="empty">Sin novedades pendientes.</div>` : `
         <table><thead><tr><th>Descripción</th><th>Gravedad</th><th>Ocurrida</th><th></th></tr></thead><tbody>
