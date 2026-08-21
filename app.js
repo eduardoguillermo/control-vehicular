@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.70';
+const VERSION = 'v0.74';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -692,6 +692,15 @@ function editarCarga(uuid, datos){
     marca: datos.marca || '',
     fecha: datos.fecha || c.fecha
   });
+  // Corrección manual de la ubicación (nombre y/o coordenadas), ej. si la
+  // búsqueda automática por GPS se equivocó o quedó desactualizada. Solo
+  // aplica si la carga ya tiene ubicación guardada — no agrega una nueva
+  // desde acá, solo corrige la que ya existe.
+  if(c.ubicacion){
+    if(typeof datos.direccionUbicacion === 'string') c.ubicacion.direccion = datos.direccionUbicacion;
+    if(typeof datos.latUbicacion === 'number' && !isNaN(datos.latUbicacion)) c.ubicacion.lat = datos.latUbicacion;
+    if(typeof datos.lngUbicacion === 'number' && !isNaN(datos.lngUbicacion)) c.ubicacion.lng = datos.lngUbicacion;
+  }
   tocar(c);
   recalcularRendimientosVehiculo(c.vehiculoId);
   save();
@@ -1580,7 +1589,7 @@ function renderCombustible(){
       <div class="stat"><div class="stat-n">${cargas.length}</div><div class="stat-l">Cargas registradas</div></div>
     </div>
     <div class="card"><div class="card-body twrap">
-      ${cargas.length ? `<table><thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍</th><th></th></tr></thead><tbody>
+      ${cargas.length ? `<table><thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍 Estación</th><th></th></tr></thead><tbody>
       ${cargas.map(c=>`<tr>
         <td class="mono">${fmtFecha(c.fecha)}</td>
         <td>${fmtKm(c.km)}</td>
@@ -1591,7 +1600,7 @@ function renderCombustible(){
         <td>${fmtMoney(c.totalPagado)}</td>
         <td>${c.tanqueLleno?'✅':'—'}</td>
         <td>${fmtRendimiento(c.rendimiento_calculado)}</td>
-        <td>${c.ubicacion ? `<a href="https://www.google.com/maps?q=${c.ubicacion.lat},${c.ubicacion.lng}" target="_blank" rel="noopener" title="${c.ubicacion.direccion ? escHtml(c.ubicacion.direccion) : 'Ver ubicación en el mapa'}">📍</a>` : '—'}</td>
+        <td>${c.ubicacion ? `<a href="https://www.google.com/maps?q=${c.ubicacion.lat},${c.ubicacion.lng}" target="_blank" rel="noopener" class="text2" style="display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle" title="${escHtml(c.ubicacion.direccion||'Ver ubicación en el mapa')}">📍 ${c.ubicacion.direccion ? escHtml(c.ubicacion.direccion) : 'Ver mapa'}</a>` : '—'}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm btn-e" onclick="modalEditarCarga('${c.uuid}')">✎</button>
           <button class="btn btn-sm btn-d" onclick="eliminarCarga('${c.uuid}')">✕</button>
@@ -1710,12 +1719,79 @@ function modalEditarCarga(uuid){
       <input type="checkbox" id="f-lleno" ${c.tanqueLleno?'checked':''} style="width:18px;height:18px;accent-color:var(--primary)">
       <label style="text-transform:none;font-size:13px">⛽ ¿Tanque lleno?</label>
     </div>
+    ${c.ubicacion ? `
+    <div class="fg" style="margin-top:6px">
+      <label>📍 Estación / lugar</label>
+      <input type="text" id="f-estacion" value="${escHtml(c.ubicacion.direccion||'')}" placeholder="Nombre de la estación">
+    </div>
+    <div class="fgrid">
+      <div class="fg"><label>Latitud</label><input type="number" inputmode="decimal" step="0.000001" id="f-lat" value="${c.ubicacion.lat}"></div>
+      <div class="fg"><label>Longitud</label><input type="number" inputmode="decimal" step="0.000001" id="f-lng" value="${c.ubicacion.lng}"></div>
+    </div>
+    <div class="fg" style="flex-direction:row;gap:8px;flex-wrap:wrap;margin-top:2px">
+      <button type="button" class="btn btn-sm" onclick="cvUsarUbicacionActualEdicion()">📍 Usar mi ubicación actual</button>
+      <button type="button" class="btn btn-sm" onclick="cvRebuscarEstacionEdicion()">🔎 Buscar estación con estas coordenadas</button>
+    </div>
+    <div class="text3" style="font-size:11px;margin-top:6px" id="f-ubic-map-link"><a href="https://www.google.com/maps?q=${c.ubicacion.lat},${c.ubicacion.lng}" target="_blank" rel="noopener">Ver ubicación en el mapa ↗</a></div>
+    <div class="text3" style="font-size:11px;margin-top:2px" id="f-ubic-status"></div>
+    ` : ''}
     <div class="note" style="margin-top:10px;font-size:11px">Al guardar se recalcula el rendimiento de esta carga y de las posteriores.</div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
     <button class="btn btn-p" onclick="guardarEdicionCarga('${uuid}')">Guardar</button>
   `);
 }
+
+// Toma la posición GPS actual del dispositivo y la vuelca en los campos de
+// lat/lng del modal de edición — útil cuando estás parado en la estación
+// correcta y querés corregir una carga cuya ubicación quedó mal registrada.
+function cvUsarUbicacionActualEdicion(){
+  const st = document.getElementById('f-ubic-status');
+  if(!navigator.geolocation){ if(st) st.textContent = '📍 GPS no disponible en este navegador.'; return; }
+  if(st) st.textContent = '📍 Obteniendo ubicación actual…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const elLat = document.getElementById('f-lat');
+      const elLng = document.getElementById('f-lng');
+      if(elLat) elLat.value = lat;
+      if(elLng) elLng.value = lng;
+      cvActualizarLinkMapaEdicion(lat, lng);
+      if(st) st.textContent = '📍 Ubicación actual cargada. Tocá "Buscar estación" para actualizar el nombre.';
+    },
+    err => { if(st) st.textContent = err.code === err.PERMISSION_DENIED ? '📍 Sin permiso de ubicación.' : '📍 No se pudo obtener la ubicación.'; },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function cvActualizarLinkMapaEdicion(lat, lng){
+  const el = document.getElementById('f-ubic-map-link');
+  if(el) el.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener">Ver ubicación en el mapa ↗</a>`;
+}
+
+// Vuelve a correr la búsqueda de estación (Overpass) con las coordenadas que
+// haya en los campos lat/lng del modal en ese momento — ya sea porque se
+// tipearon a mano o porque se cargaron con "Usar mi ubicación actual".
+function cvRebuscarEstacionEdicion(){
+  const elLat = document.getElementById('f-lat');
+  const elLng = document.getElementById('f-lng');
+  const st = document.getElementById('f-ubic-status');
+  if(!elLat || !elLng) return;
+  const lat = Number(elLat.value), lng = Number(elLng.value);
+  if(!lat || !lng){ if(st) st.textContent = 'Coordenadas inválidas.'; return; }
+  cvActualizarLinkMapaEdicion(lat, lng);
+  if(st) st.textContent = '🔎 Buscando estación…';
+  cvBuscarEstacionCercana(lat, lng).then(estacion => {
+    const elEstacion = document.getElementById('f-estacion');
+    if(estacion){
+      if(elEstacion) elEstacion.value = estacion;
+      if(st) st.textContent = `✅ Encontrada: ${estacion}`;
+    } else if(st) {
+      st.textContent = 'No se encontró ninguna estación cerca — completá el nombre a mano.';
+    }
+  });
+}
+
 function guardarEdicionCarga(uuid){
   const km = Number(document.getElementById('f-km').value);
   const fecha = new Date(document.getElementById('f-fecha').value).toISOString();
@@ -1726,9 +1802,15 @@ function guardarEdicionCarga(uuid){
   const totalPagado = Number(document.getElementById('f-total').value);
   recordarMarcaCombustibleCustom(marca);
   const tanqueLleno = document.getElementById('f-lleno').checked;
+  const elEstacion = document.getElementById('f-estacion');
+  const direccionUbicacion = elEstacion ? elEstacion.value.trim() : undefined;
+  const elLat = document.getElementById('f-lat');
+  const elLng = document.getElementById('f-lng');
+  const latUbicacion = elLat && elLat.value !== '' ? Number(elLat.value) : undefined;
+  const lngUbicacion = elLng && elLng.value !== '' ? Number(elLng.value) : undefined;
   if(!km || !litros || !totalPagado){ alert('Completá km, litros y total.'); return; }
   cerrarModal();
-  const resultado = editarCarga(uuid, { km, fecha, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno });
+  const resultado = editarCarga(uuid, { km, fecha, marca, tipoCombustible, litros, costoLitro, totalPagado, tanqueLleno, direccionUbicacion, latUbicacion, lngUbicacion });
   goTo('combustible');
   if(resultado && resultado.alertas.length){
     setTimeout(()=>alert(resultado.alertas.map(a=>a.mensaje).join('\n\n')), 100);
@@ -2588,6 +2670,14 @@ function renderAjustes(){
         <button class="btn" style="margin-top:12px" onclick="restaurarAjustesAlertasDefault()">↺ Restaurar valores de fábrica (500km / 80%)</button>
       </div>
     </div>
+    <div class="card">
+      <div class="ch"><div class="ct">📍 Corregir estaciones en cargas guardadas</div></div>
+      <div class="card-body">
+        <p class="text2" style="margin-bottom:14px;font-size:12px">Vuelve a buscar la estación de servicio (OpenStreetMap) para las cargas que ya tienen ubicación guardada, por si en su momento no se había podido identificar el nombre (por ejemplo, por quedar unos metros afuera de la estación). Solo corrige las que encuentra; el resto queda igual. Consulta de a una carga por vez para no saturar el servicio gratuito — puede tardar según cuántas tengas.</p>
+        <button class="btn btn-p" id="btn-backfill-estaciones" onclick="cvBackfillEstacionesCargas()">🔄 Corregir estaciones ahora</button>
+        <div id="backfill-estaciones-status" class="text2" style="margin-top:10px;font-size:12px"></div>
+      </div>
+    </div>
   `;
 }
 
@@ -2992,40 +3082,128 @@ function cvCapturarUbicacionMobile(){
 // Convierte lat/lng en un nombre de lugar/dirección legible (ej. "YPF, Ruta
 // 9, Maldonado"). Si falla (sin internet, timeout, servicio caído) la carga
 // igual se guarda con lat/lng, solo que sin el texto de dirección.
+//
+// Nominatim solo devuelve el nombre del POI si el punto GPS cae *dentro* del
+// polígono/nodo de la estación en OSM; si la carga se registra unos metros
+// afuera (común en estaciones grandes, con varias islas), Nominatim devuelve
+// la calle o un comercio vecino en vez de la estación. Por eso, en paralelo,
+// se consulta Overpass API buscando específicamente estaciones de servicio
+// (amenity=fuel) en un radio de 100m — si aparece alguna, su nombre tiene
+// prioridad sobre lo que diga Nominatim.
 function cvReverseGeocodeMobile(ubic){
   const ctrl = new AbortController();
   const timeoutId = setTimeout(()=>ctrl.abort(), 8000);
   const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${ubic.lat}&lon=${ubic.lng}&zoom=18&addressdetails=1`;
-  fetch(url, { headers: { 'Accept-Language': 'es' }, signal: ctrl.signal })
+
+  const pNominatim = fetch(url, { headers: { 'Accept-Language': 'es' }, signal: ctrl.signal })
     .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
     .then(data => {
-      clearTimeout(timeoutId);
       const a = data.address || {};
-      // Prioridad: nombre del POI (estación de servicio, si Nominatim lo
-      // identifica) > nombre de la vía > la dirección visible completa.
       const nombreLugar = data.name || a.fuel || a.amenity || a.shop || null;
       const calle = a.road || a.pedestrian || '';
       const localidad = a.city || a.town || a.village || a.suburb || '';
-      let direccion = nombreLugar ? nombreLugar : (calle || data.display_name || '');
-      if(localidad && !direccion.includes(localidad)) direccion += (direccion ? ', ' : '') + localidad;
-      if(!direccion) direccion = data.display_name || '';
-
-      // Solo aplica si sigue siendo la misma ubicación vigente (el usuario
-      // no cerró/reinició el formulario mientras esperábamos la respuesta).
-      if(_vrUbicacionActual && _vrUbicacionActual.lat === ubic.lat && _vrUbicacionActual.lng === ubic.lng){
-        _vrUbicacionActual.direccion = direccion;
-        const elNow = document.getElementById('vr-gps-status');
-        if(elNow) elNow.textContent = direccion ? `📍 ${direccion}` : '📍 Ubicación capturada';
-      }
+      return { nombreLugar, calle, localidad, display_name: data.display_name || '' };
     })
-    .catch(() => {
-      clearTimeout(timeoutId);
-      // Sin dirección legible, pero lat/lng ya está guardado en _vrUbicacionActual.
-      if(_vrUbicacionActual && _vrUbicacionActual.lat === ubic.lat && _vrUbicacionActual.lng === ubic.lng){
-        const elNow = document.getElementById('vr-gps-status');
-        if(elNow) elNow.textContent = '📍 Ubicación capturada (sin nombre de lugar)';
+    .catch(() => null)
+    .finally(() => clearTimeout(timeoutId));
+
+  const pEstacion = cvBuscarEstacionCercana(ubic.lat, ubic.lng);
+
+  Promise.all([pNominatim, pEstacion]).then(([nom, estacion]) => {
+    // Solo aplica si sigue siendo la misma ubicación vigente (el usuario
+    // no cerró/reinició el formulario mientras esperábamos la respuesta).
+    if(!(_vrUbicacionActual && _vrUbicacionActual.lat === ubic.lat && _vrUbicacionActual.lng === ubic.lng)) return;
+
+    let direccion = '';
+    if(estacion){
+      // Estación de servicio encontrada cerca por Overpass — prioridad
+      // máxima, es más confiable que el snap por punto de Nominatim.
+      direccion = estacion;
+      const localidad = nom && nom.localidad;
+      if(localidad && !direccion.includes(localidad)) direccion += ', ' + localidad;
+    } else if(nom){
+      direccion = nom.nombreLugar ? nom.nombreLugar : (nom.calle || nom.display_name || '');
+      if(nom.localidad && !direccion.includes(nom.localidad)) direccion += (direccion ? ', ' : '') + nom.localidad;
+      if(!direccion) direccion = nom.display_name || '';
+    }
+
+    _vrUbicacionActual.direccion = direccion;
+    const elNow = document.getElementById('vr-gps-status');
+    if(elNow) elNow.textContent = direccion ? `📍 ${direccion}` : '📍 Ubicación capturada (sin nombre de lugar)';
+  });
+}
+
+// Busca estaciones de servicio (amenity=fuel) en OpenStreetMap dentro de un
+// radio de 100m usando Overpass API, y devuelve el nombre de la más cercana
+// (o null si no hay ninguna cargada en OSM cerca, o si falla la consulta).
+// Gratuito, sin API key. Se usa tanto al capturar una carga nueva como en el
+// backfill manual de cargas ya guardadas (ver cvBackfillEstacionesCargas).
+//
+// Las estaciones se mapean en OSM tanto como nodo puntual como polígono
+// (way) — sobre todo las más grandes, con marquesina/canopia, que suelen
+// ser la mayoría en zona urbana. Por eso se buscan node + way; los way no
+// traen lat/lon directo, se pide "out center" para obtener el centro.
+function cvBuscarEstacionCercana(lat, lng){
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(()=>ctrl.abort(), 8000);
+  const query = `[out:json][timeout:8];(node(around:100,${lat},${lng})[amenity=fuel];way(around:100,${lat},${lng})[amenity=fuel];);out center;`;
+  const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+  return fetch(url, { signal: ctrl.signal })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+    .then(data => {
+      const nodos = (data.elements || [])
+        .filter(e => e.tags)
+        .map(e => ({ tags: e.tags, lat: e.lat ?? (e.center && e.center.lat), lon: e.lon ?? (e.center && e.center.lon) }))
+        .filter(e => typeof e.lat === 'number' && typeof e.lon === 'number');
+      if(!nodos.length) return null;
+      const distancia = (la1, lo1, la2, lo2) => {
+        const R = 6371000, rad = Math.PI/180;
+        const dLat = (la2-la1)*rad, dLon = (lo2-lo1)*rad;
+        const s = Math.sin(dLat/2)**2 + Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+      };
+      let mejor = null, mejorDist = Infinity;
+      for(const n of nodos){
+        const d = distancia(lat, lng, n.lat, n.lon);
+        if(d < mejorDist){ mejorDist = d; mejor = n; }
       }
-    });
+      return mejor ? (mejor.tags.brand || mejor.tags.name || mejor.tags.operator || null) : null;
+    })
+    .catch(() => null)
+    .finally(() => clearTimeout(timeoutId));
+}
+
+// Backfill manual: vuelve a consultar Overpass para las cargas que ya tienen
+// lat/lng guardado, por si en su momento (GPS unos metros afuera de la
+// estación) no se había podido identificar el nombre. Se corre bajo demanda
+// desde ⚙️ Ajustes — no automático, para no disparar decenas de consultas a
+// un servicio gratuito sin que el usuario lo pida. Solo pisa el nombre
+// guardado si Overpass encuentra una estación cerca; si no encuentra nada,
+// la carga queda tal cual estaba (no borra lo que ya tenía).
+async function cvBackfillEstacionesCargas(){
+  const candidatas = DB.cargas.filter(c => !c._deleted && c.ubicacion && typeof c.ubicacion.lat === 'number' && typeof c.ubicacion.lng === 'number');
+  const btn = document.getElementById('btn-backfill-estaciones');
+  const estado = document.getElementById('backfill-estaciones-status');
+  if(!candidatas.length){ if(estado) estado.textContent = 'No hay cargas con ubicación guardada.'; return; }
+  if(btn) btn.disabled = true;
+  let corregidas = 0, revisadas = 0;
+  for(const c of candidatas){
+    revisadas++;
+    if(estado) estado.textContent = `Revisando ${revisadas}/${candidatas.length}…`;
+    try{
+      const estacion = await cvBuscarEstacionCercana(c.ubicacion.lat, c.ubicacion.lng);
+      if(estacion && estacion !== c.ubicacion.direccion){
+        c.ubicacion.direccion = estacion;
+        tocar(c);
+        corregidas++;
+      }
+    }catch(e){ /* se ignora esta carga puntual y se sigue con la siguiente */ }
+    // Pausa entre consultas para no saturar Overpass (servicio gratuito, sin key).
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  if(btn) btn.disabled = false;
+  if(estado) estado.textContent = `✅ Listo: ${corregidas} de ${candidatas.length} cargas corregidas con nombre de estación.`;
+  if(corregidas) save();
 }
 
 function guardarCargaRapidaMobile(){
