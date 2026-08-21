@@ -201,6 +201,38 @@
     .content { margin-left: 0; padding: 20px 16px; }
     .hero { margin: -20px -16px 32px; padding: 24px 16px; }
   }
+
+  .changelog-list { display: flex; flex-direction: column; gap: 6px; }
+  .changelog-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    overflow: hidden;
+  }
+  .changelog-item summary {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    background: #f8fafc;
+    user-select: none;
+  }
+  .changelog-item summary::-webkit-details-marker { display: none; }
+  .changelog-item summary::before {
+    content: '▸';
+    color: var(--muted);
+    font-size: 11px;
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .changelog-item[open] summary::before { transform: rotate(90deg); }
+  .changelog-item[open] summary { border-bottom: 1px solid var(--border); }
+  .cl-ver { font-family: 'Courier New', monospace; font-weight: 700; color: var(--primary); }
+  .cl-date { font-size: 11px; color: var(--muted); font-family: 'Courier New', monospace; }
+  .changelog-item .cl-body { padding: 10px 14px; font-size: 13px; color: #4b5563; }
 </style>
 </head>
 <body>
@@ -227,6 +259,7 @@
   <a href="#gastos">💰 Gastos</a>
   <a href="#reportes">📈 Reportes</a>
   <a href="#vehiculos">🚙 Vehículos</a>
+  <a href="#ajustes">⚙️ Ajustes</a>
 
   <div class="section-label">Celular</div>
   <a href="#mobile">📱 Carga rápida</a>
@@ -235,6 +268,7 @@
   <a href="#backup">💾 Backup / Snapshots</a>
   <a href="#drive">☁️ Sincronización con Drive</a>
   <a href="#salir">🚪 Salir</a>
+  <a href="#changelog">📋 Historial de cambios</a>
 </nav>
 
 <div class="content">
@@ -305,6 +339,7 @@
       <li>Últimas 5 cargas, próximos mantenimientos y estado de neumáticos/batería</li>
       <li>Alertas activas (mantenimiento vencido o componente por cambiar) arriba de todo</li>
     </ul>
+    <div class="note">Si todavía no registraste el <b>km del mes en curso</b> (ver <a href="#reportes">Lecturas de kilometraje mensual</a>), arriba de todo aparece un aviso "📅 Todavía no registraste el km de este mes" con botón directo para cargarlo. Solo se muestra en PC.</div>
   </div>
 
   <div class="section" id="vencimientos">
@@ -347,6 +382,17 @@
     <p>El KPI de <b>rendimiento promedio</b> del Dashboard usa el promedio de las cargas con rendimiento calculado de los últimos 3 meses, para ver la tendencia real del vehículo.</p>
     <h2>Editar una carga</h2>
     <p>Desde la tabla en Combustible (PC) podés tocar <b>✎</b> en cualquier carga para corregirla. Como el rendimiento de cada carga depende de la carga anterior con tanque lleno, al guardar una edición <b>se recalcula toda la cadena</b> — no solo esa carga, también las posteriores que dependían de ella. Lo mismo pasa si eliminás una carga: las siguientes se recalculan solas para que no queden números viejos dando vueltas.</p>
+
+    <h2>📍 Estación / ubicación</h2>
+    <p>Cuando cargás combustible desde la <a href="#mobile">carga rápida del celular</a>, la app captura el GPS y busca automáticamente el nombre de la estación de servicio (vía OpenStreetMap), mostrándolo en la columna <b>"📍 Estación"</b> de la tabla — no solo el ícono, el nombre completo (con tooltip si queda truncado). Tocando el link te lleva directo a esa ubicación en Google Maps.</p>
+    <div class="note">La búsqueda a veces no encuentra la estación (si quedaste unos metros afuera del punto que tiene mapeado OpenStreetMap, o si esa estación no está cargada ahí). En esos casos, la carga igual queda guardada con las coordenadas GPS, solo que sin nombre — se puede corregir a mano (ver abajo) o reintentar más tarde desde <a href="#ajustes">Ajustes → Corregir estaciones</a>.</div>
+    <p>Al editar una carga que tiene ubicación guardada, el modal muestra tres formas de corregirla:</p>
+    <ul>
+      <li><b>Nombre de la estación</b> — campo de texto libre, por si la búsqueda automática se equivocó o no encontró nada.</li>
+      <li><b>Latitud / Longitud</b> — editables a mano, con link para ver el punto en el mapa antes de corregir.</li>
+      <li><b>📍 Usar mi ubicación actual</b> — si estás parado en la estación correcta, toma el GPS del dispositivo en ese momento y completa lat/lng por vos.</li>
+      <li><b>🔎 Buscar estación con estas coordenadas</b> — vuelve a correr la búsqueda automática con las coordenadas que haya en el formulario en ese momento (ya sea tipeadas a mano o cargadas con el botón anterior).</li>
+    </ul>
   </div>
 
   <div class="section" id="mantenimientos">
@@ -480,6 +526,17 @@
     <p>Cada serie se escala a su propio máximo (no comparten eje), así que la altura de una barra se compara contra las demás barras de su mismo color, no entre azul y verde.</p>
     <div class="note">El <b>mes en curso</b> se distingue con un patrón rayado — es un dato parcial que se va a seguir agrandando a medida que cargues combustible y gastos durante el mes.</div>
     <div class="info">Sirve para ver de un vistazo si un mes con más gasto se explica por más uso (más km) o por algo puntual (un service grande, un cambio de neumáticos) que no tiene que ver con cuánto manejaste.</div>
+
+    <h2>🔢 Lecturas de kilometraje mensual</h2>
+    <p>Un módulo aparte, sin relación con las cargas de combustible ni con el gráfico de arriba: sirve para responder una sola pregunta — <b>cuántos km recorriste cada mes</b> — a partir de lecturas de odómetro que cargás vos a mano, típicamente el día 1 de cada mes.</p>
+    <ul>
+      <li>Botón <b>"+ Registrar"</b> (en la card, o arriba de todo en "🔢 Registrar lectura de km") abre un formulario con fecha (por defecto, hoy) y kilometraje.</li>
+      <li>Se guarda <b>una sola lectura por mes</b>: si ya cargaste una para el mes de la fecha elegida, se actualiza en vez de duplicarse — no importa si la cargás el día 1 exacto o unos días después.</li>
+      <li>La tabla muestra, para cada lectura: el mes, la fecha exacta, el km, y <b>"Km del período"</b> — la diferencia contra la lectura anterior, es decir, cuánto recorriste entre una y otra.</li>
+      <li>Cada lectura se puede editar (✎) o eliminar (✕) desde la misma tabla.</li>
+    </ul>
+    <div class="warning">Igual que Mantenimientos, Componentes y Gastos, las lecturas de km son <b>solo PC</b>: desde el celular la app avisa y no deja cargar ni editar, para no arriesgar pisar el historial con una copia vieja del teléfono.</div>
+    <div class="info">Ver también el recordatorio en el <a href="#dashboard">Dashboard</a>, que avisa si todavía no cargaste la lectura del mes en curso.</div>
   </div>
 
   <div class="section" id="vehiculos">
@@ -493,6 +550,26 @@
     <p>Cada vehículo se identifica por <b>matrícula</b> (no por un nombre libre), y guarda su tipo, marca, modelo, año y kilometraje inicial del odómetro al momento de empezar a usar la app. También podés cargar el <b>propietario</b> (nombre y apellido) — útil cuando el auto no está a tu nombre o cuando en el taller te conocen por el nombre completo y no alcanza con la matrícula. Aparece junto a la matrícula en el selector de vehículo, en la tarjeta de Vehículos y en la <a href="#novedades">Lista para el taller</a>.</p>
     <p>El selector de vehículo activo está siempre visible en la barra superior (PC) o arriba del formulario (celular). Todo lo que cargás — combustible, mantenimientos, componentes, gastos — queda asociado al vehículo que esté activo en ese momento.</p>
     <div class="warning">Eliminar un vehículo borra también <b>todo</b> su historial asociado (cargas, mantenimientos, componentes, gastos). No se puede deshacer.</div>
+  </div>
+
+  <div class="section" id="ajustes">
+    <div class="section-header">
+      <div class="section-icon">⚙️</div>
+      <div>
+        <div class="section-title">Ajustes</div>
+        <div class="section-subtitle">Sensibilidad de alertas y corrección de estaciones</div>
+      </div>
+    </div>
+    <h2>🔔 Sensibilidad de alertas de vencimiento</h2>
+    <p>Define cuándo aparece el aviso de "próximo a vencer" al abrir la app (ver <a href="#vencimientos">Próximos vencimientos</a>):</p>
+    <ul>
+      <li><b>Avisar mantenimiento si faltan (km)</b> — de fábrica, 500 km.</li>
+      <li><b>Avisar componente al llegar a (% de vida útil)</b> — de fábrica, 80%.</li>
+    </ul>
+    <p>Valores más altos avisan con más anticipación. Hay un botón para restaurar los valores de fábrica en cualquier momento.</p>
+    <h2>📍 Corregir estaciones en cargas guardadas</h2>
+    <p>Vuelve a buscar el nombre de la estación de servicio (ver <a href="#combustible">Combustible → Estación / ubicación</a>) para todas las cargas que ya tienen ubicación GPS guardada pero que en su momento se quedaron sin nombre. Solo corrige las que encuentra; el resto queda como estaba. Consulta de a una carga por vez (con una pequeña pausa entre cada una) para no saturar el servicio gratuito de búsqueda — con muchas cargas puede tardar un rato, y muestra el progreso en pantalla.</p>
+    <div class="tip">Útil después de la primera vez que instalás una versión nueva de la app con este buscador, o si notás varias cargas viejas sin nombre de estación en la tabla de Combustible.</div>
   </div>
 
   <div class="section" id="mobile">
@@ -511,6 +588,7 @@
       <div class="step"><div class="step-num"></div><div class="step-body">Cuando terminás, tocás <b>🚪 Guardar y salir</b>: hace snapshot local + backup a Drive, y confirma. La app queda abierta para la próxima vez (no se cierra sola, a diferencia de la PC).</div></div>
     </div>
     <p>Debajo de "Guardar carga" hay un botón <b>⚠️ Reportar novedad</b> — sirve para anotar un problema que notaste en el auto (ruido, testigo, pérdida) sin tener que entrar a la app completa. Confirma en la misma pantalla y sincroniza sola, como las cargas.</p>
+    <div class="tip">Apenas abrís el formulario, la app pide el <b>GPS</b> y busca en segundo plano el nombre de la <a href="#combustible">estación de servicio</a> — para cuando termines de cargar los demás datos, normalmente ya está listo. Si el celular no tiene permiso de ubicación o no hay señal, la carga se guarda igual, sin ubicación.</div>
     <div class="tip">No hace falta "cerrar" la app en el celular después de cada carga — con tocar Guardar y salir una vez que terminaste ya quedó todo respaldado.</div>
   </div>
 
@@ -545,6 +623,303 @@
     </div>
     <div class="info">El merge es por registro individual (cada carga, cada mantenimiento, etc.), no todo o nada — así podés cargar datos en el celular y en la PC sin que uno le gane al otro por accidente. Borrar un registro también viaja bien en el merge: queda marcado como borrado y ese borrado gana, en vez de que el registro viejo vuelva a aparecer.</div>
     <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b> y las <b>novedades nuevas</b> (crearlas, no resolverlas/editarlas). Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
+  </div>
+
+  <div class="section" id="changelog">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-title">Historial de cambios</div>
+        <div class="section-subtitle">Qué trajo cada versión, de más reciente a más antigua</div>
+      </div>
+    </div>
+    <p class="text2" style="color:#64748b;font-size:13px;margin-bottom:14px">Tocá cualquier versión para ver qué cambió. La más reciente aparece abierta.</p>
+    <div class="changelog-list">
+      <details class="changelog-item" open>
+        <summary><span class="cl-ver">v0.77</span><span class="cl-date">2026-08-21</span> <span class="badge badge-green" style="margin-left:6px">actual</span></summary>
+        <div class="cl-body">Documentar estación/ubicación, Ajustes y este historial de cambios en el instructivo (colapsable)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.76</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Documentar las lecturas de km mensuales en el instructivo</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.75</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Lecturas de kilometraje mensual: registro manual con recordatorio en el Dashboard, independiente de las cargas de combustible</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.74</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Corregir a mano el nombre de la estación y las coordenadas de una carga, con botones de GPS actual y re-búsqueda</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.73</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Mostrar el nombre de la estación (no solo el ícono) en la tabla de Combustible</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.72</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Fix de la búsqueda en Overpass: incluir estaciones mapeadas como polígono, no solo como punto</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.71</span><span class="cl-date">2026-08-21</span></summary>
+        <div class="cl-body">Buscar la estación de servicio cercana vía Overpass (con Nominatim de respaldo) + corrección manual para cargas ya guardadas</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.70</span><span class="cl-date">2026-08-16</span></summary>
+        <div class="cl-body">Propietario junto a la matrícula en el selector de vehículo</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.69</span><span class="cl-date">2026-08-16</span></summary>
+        <div class="cl-body">Fix de vehículo indefinido en Lista para el taller + campo Propietario</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.67</span><span class="cl-date">2026-08-16</span></summary>
+        <div class="cl-body">"Lista para el taller" — botón en la card de novedades y en vencimientos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.66</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Card de novedades pendientes en el Dashboard, ordenadas por gravedad</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.65</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Ocultar el botón "Registrar" hasta llegar al km programado</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.64</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Formulario vacío al programar servicio + botones de editar en azul + fix de ícono</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.62</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Permitir cargar novedades desde el cel (merge seguro, como las cargas)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.61</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Bloquear carga de mantenimientos/novedades desde el cel (evita pérdida por sync)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.60</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Fix de wrap de la topbar en mobile (los botones quedaban ocultos)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.59</span><span class="cl-date">2026-08-15</span></summary>
+        <div class="cl-body">Novedades/fallas en Mantenimientos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.57</span><span class="cl-date">2026-08-06</span></summary>
+        <div class="cl-body">Botón de Drive en la topbar + auto-sync silencioso</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.56</span><span class="cl-date">2026-08-06</span></summary>
+        <div class="cl-body">Reverse geocoding con Nominatim para identificar la estación de servicio</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.55</span><span class="cl-date">2026-08-06</span></summary>
+        <div class="cl-body">Geolocalización GPS en la carga rápida de combustible desde el celular</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.54</span><span class="cl-date">2026-07-29</span></summary>
+        <div class="cl-body">Marca de combustible como combobox editable (agregar/borrar sugerencias)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.52</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Borrado de cargas con tombstone (evita que reaparezcan al sincronizar)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.51</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Fix: el backup histórico DEV también se dispara al Salir, no solo al conectar</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.50</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Sync restringido en el cel (solo cargas) + backups históricos DEV en carpeta propia</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.49</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Ajuste interno de versión (sin cambios funcionales)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.48</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Mostrar el rendimiento también en L/100km</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.47</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Auto-limpieza de cargas de combustible duplicadas al sincronizar</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.46</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Pedir almacenamiento persistente al navegador (evita pérdida de datos en el cel)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.45</span><span class="cl-date">2026-07-22</span></summary>
+        <div class="cl-body">Fix: la fecha editada de una carga se mostraba un día antes (huso horario)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.44</span><span class="cl-date">2026-07-21</span></summary>
+        <div class="cl-body">Reincorpora Ajustes (umbrales de alerta configurables)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.43</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Periodicidad bimestral para gastos fijos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.42</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Desglose por gasto fijo dentro del costo por km</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.41</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Fix: el prorrateo de gastos fijos no respetaba la fecha de inicio</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.40</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Piso de julio 2026 para el gráfico de Reportes</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.39</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">El reporte ignora la fecha de creación del vehículo</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.38</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">El reporte arranca desde la primera fecha con datos reales</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.37</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Sección Reportes con gráfico combinado de km + gasto</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.35</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Fix: el botón de conectar Drive no actualizaba la UI</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.34</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Orden alfabético + borrar sugerencias de tipo de componente</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.33</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Renombrar sección a "Componentes"</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.32</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Tipo de componente editable con combobox</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.31</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Renombrar tipo de combustible "Prime" a "Premium"</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.30</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Header DEV en violeta + fix de ancho de campos en mobile</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.29</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Editar componente in place</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.28</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Campos de componentes editables (select-on-focus)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.27</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Versión visible en la vista mobile</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.26</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">"Faltan X semanas" en vez de fecha absoluta</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.25</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Modal de próximos vencimientos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.24</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Fecha de instalación editable en componentes</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.23</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">DEV pasa a ser solo lectura desde el Drive de PROD</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.22</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Vida útil por tiempo para batería</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.21</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Costo obligatorio + fecha de realización en mantenimientos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.20</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Fix de bug en el cálculo</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.19</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Cálculo bidireccional completo (litros/precio/total)</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.18</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Botón para borrar todos los datos</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.17</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Ayuda contextual por sección</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.16</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Cache-busting en el ícono para forzar refresco</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.15</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">"Lavado" solo disponible en mantenimientos a demanda</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.14</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Mantenimientos a demanda</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.13</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Campos de marca y tipo de combustible</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.12</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">"Tanque lleno" tildado por default</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.11</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Sin splash en mobile</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.10</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Costo por litro calculado desde litros + total</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.09</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Service worker network-first + favicon explícito</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.08</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Vista móvil dedicada, solo carga rápida</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.07</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Cierre de app solo en PC; el cel solo confirma el backup</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.06</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Modal de salida con backup a Drive</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.05</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Icono rediseñado</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.04</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Campo vehículo pasa a ser la matrícula</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.03</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Montos sin decimales</div>
+      </details>
+      <details class="changelog-item">
+        <summary><span class="cl-ver">v0.02</span><span class="cl-date">2026-07-20</span></summary>
+        <div class="cl-body">Campos editables + icono fastback rojo</div>
+      </details>
+    </div>
   </div>
 
   <div class="section" id="salir">

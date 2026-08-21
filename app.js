@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.74';
+const VERSION = 'v0.77';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -30,6 +30,7 @@ let DB = {
   gastosFijos: [],
   gastosVariables: [],
   alertas: [],
+  lecturasKm: [],
   tiposComponenteCustom: [],
   marcasCombustibleCustom: [],
   config: { vehiculoActivo: null }
@@ -44,7 +45,7 @@ function cvNuevoUUID(){
 
 function normalizarDB(){
   if(!DB.nid) DB.nid = 1;
-  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
+  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
     .forEach(k => { if(!DB[k]) DB[k] = []; });
   if(!DB.tiposComponenteCustom) DB.tiposComponenteCustom = [];
   if(!DB.marcasCombustibleCustom) DB.marcasCombustibleCustom = [];
@@ -54,7 +55,7 @@ function normalizarDB(){
   if(!DB.config.umbralPorcentajeAvisoVencimiento) DB.config.umbralPorcentajeAvisoVencimiento = DEFAULT_UMBRAL_PORCENTAJE_AVISO_VENCIMIENTO;
 
   // Backfill uuid/lastModified para todas las colecciones (necesario para merge Drive)
-  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
+  ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
     .forEach(k => DB[k].forEach(r => {
       if(!r.uuid) r.uuid = cvNuevoUUID();
       if(!r.lastModified) r.lastModified = Date.now();
@@ -336,7 +337,7 @@ async function cvSubirDrive(){
   try{
     const remoto = await DriveSync.bajarBackup();
     if(remoto && typeof remoto === 'object' && Object.keys(remoto).length){
-      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
+      ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
         .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
       if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
       normalizarDB();
@@ -359,7 +360,7 @@ async function cvSincronizarDrive(silencioso){
       if(DEV_MODE){
         DB = remoto;
       } else {
-        ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
+        ['vehiculos','cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
           .forEach(k => { DB[k] = cvMergeColeccion(DB[k], remoto[k]); });
         if(remoto.nid && remoto.nid > DB.nid) DB.nid = remoto.nid;
       }
@@ -387,7 +388,7 @@ async function cvSincronizarDrive(silencioso){
 // Drive. El celular es de solo lectura para todo lo que no sea `cargas` o
 // `novedades` (altas nuevas); para esas dos sí aporta lo nuevo, mergeado por
 // uuid/lastModified. Resolver/editar/eliminar una novedad sigue siendo PC-only.
-const COLECCIONES_SOLO_PC = ['vehiculos','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas'];
+const COLECCIONES_SOLO_PC = ['vehiculos','mantenimientosProgramados','mantenimientosRealizados','componentes','gastosFijos','gastosVariables','alertas','lecturasKm'];
 
 async function cvSubirDriveMobil(){
   if(typeof DriveSync === 'undefined' || !DriveSync.conectado) return;
@@ -466,7 +467,7 @@ async function cvBorrarTodo(){
   DB = {
     nid: 1,
     vehiculos: [], cargas: [], mantenimientosProgramados: [], mantenimientosRealizados: [], novedades: [],
-    componentes: [], gastosFijos: [], gastosVariables: [], alertas: [],
+    componentes: [], gastosFijos: [], gastosVariables: [], alertas: [], lecturasKm: [],
     tiposComponenteCustom: [],
     config: { vehiculoActivo: null }
   };
@@ -542,6 +543,55 @@ function primeraFechaConDatos(vehiculoId){
   fechas.sort();
   return new Date(fechas[0]);
 }
+// ── LECTURAS DE KM MENSUALES (registro manual, típicamente día 1 de mes) ────
+// Se guarda como máximo una lectura por vehículo y por mes: si ya existe una
+// para el mes de la fecha elegida, se actualiza en vez de duplicarse — así
+// no importa si se carga el día 1 exacto o unos días después. Es un módulo
+// aparte, sin relación con las cargas de combustible: no alimenta
+// kmAlFinDeFecha/kmActualVehiculo ni el gráfico "Km y gasto por mes" — solo
+// responde "cuántos km recorrí cada mes" en base a estas lecturas.
+function lecturasKmVehiculo(vehiculoId){
+  return DB.lecturasKm.filter(l=>l.vehiculoId===vehiculoId).sort((a,b)=> new Date(a.fecha) - new Date(b.fecha));
+}
+function lecturaKmMesActual(vehiculoId){
+  const hoy = new Date();
+  return DB.lecturasKm.find(l => l.vehiculoId===vehiculoId &&
+    new Date(l.fecha).getFullYear()===hoy.getFullYear() && new Date(l.fecha).getMonth()===hoy.getMonth()) || null;
+}
+function registrarLecturaKm(vehiculoId, fechaISO, km){
+  const d = new Date(fechaISO);
+  const existente = DB.lecturasKm.find(l => l.vehiculoId===vehiculoId &&
+    new Date(l.fecha).getFullYear()===d.getFullYear() && new Date(l.fecha).getMonth()===d.getMonth());
+  if(existente){
+    existente.fecha = fechaISO;
+    existente.km = km;
+    tocar(existente);
+    save();
+    return existente;
+  }
+  const nueva = tocar({ uuid: cvNuevoUUID(), vehiculoId, fecha: fechaISO, km });
+  DB.lecturasKm.push(nueva);
+  save();
+  return nueva;
+}
+// Edita una lectura puntual por uuid (para corregir fecha/km desde la
+// tabla), sin pasar por el upsert-por-mes de registrarLecturaKm.
+function editarLecturaKmExacta(uuid, fechaISO, km){
+  const l = DB.lecturasKm.find(x=>x.uuid===uuid);
+  if(!l) return null;
+  l.fecha = fechaISO;
+  l.km = km;
+  tocar(l);
+  save();
+  return l;
+}
+function eliminarLecturaKm(uuid){
+  if(!confirm('¿Eliminar esta lectura de kilometraje?')) return;
+  DB.lecturasKm = DB.lecturasKm.filter(l=>l.uuid!==uuid);
+  save();
+  goTo('reportes');
+}
+
 function calcularReporteMensual(vehiculoId){
   const hoy = new Date();
   let inicio = primeraFechaConDatos(vehiculoId);
@@ -599,7 +649,7 @@ function editarVehiculo(uuid, datos){
 function eliminarVehiculo(uuid){
   if(!confirm('¿Eliminar este vehículo y TODOS sus datos asociados (cargas, mantenimientos, componentes, gastos)? Esta acción no se puede deshacer.')) return;
   DB.vehiculos = DB.vehiculos.filter(v=>v.uuid!==uuid);
-  ['cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas']
+  ['cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
     .forEach(k => { DB[k] = DB[k].filter(r => r.vehiculoId !== uuid); });
   if(DB.config.vehiculoActivo === uuid) DB.config.vehiculoActivo = DB.vehiculos[0] ? DB.vehiculos[0].uuid : null;
   save();
@@ -1470,10 +1520,17 @@ function renderDashboard(){
     if(dg) return dg;
     return new Date(a.fecha_ocurrencia) - new Date(b.fecha_ocurrencia); // más antigua (más tiempo sin resolver) primero
   });
+  // Recordatorio de la lectura de km del mes — solo PC, que es donde se puede cargar.
+  const faltaLecturaMes = !esMobile() && !lecturaKmMesActual(v.uuid);
 
   document.getElementById('content').innerHTML = `
-    ${alertas.length ? `
+    ${(alertas.length || faltaLecturaMes) ? `
     <div class="alert-stack">
+      ${faltaLecturaMes ? `
+      <div class="alert-item alert-warn">
+        <span>📅 Todavía no registraste el km de este mes.</span>
+        <button class="btn btn-sm" onclick="modalRegistrarLecturaKm()">🔢 Registrar</button>
+      </div>` : ''}
       ${alertas.map(a => `
         <div class="alert-item ${a.tipo==='componente'?'alert-crit':'alert-warn'}">
           <span>${a.mensaje}</span>
@@ -2548,6 +2605,7 @@ function renderReportes(){
   const maxKm = Math.max(...datos.map(d=>d.kmDelMes), 1);
   const maxGasto = Math.max(...datos.map(d=>d.gasto), 1);
   const hoy = new Date();
+  document.getElementById('pacts').innerHTML = esMobile() ? '' : `<button class="btn btn-p btn-sm" onclick="modalRegistrarLecturaKm()">🔢 Registrar lectura de km</button>`;
 
   document.getElementById('content').innerHTML = `
     <div class="card">
@@ -2573,7 +2631,70 @@ function renderReportes(){
         <p class="text3" style="font-size:11px;margin-top:10px;text-align:center">El mes en curso es un dato parcial: la barra se va a ir agrandando a medida que cargues combustible y gastos.</p>
       </div>
     </div>
+
+    <div class="card">
+      <div class="ch"><div class="ct">🔢 Lecturas de kilometraje mensual</div>${esMobile() ? '' : `<button class="btn btn-sm btn-p" onclick="modalRegistrarLecturaKm()">+ Registrar</button>`}</div>
+      <div class="card-body twrap">
+        <p class="text2" style="margin-bottom:12px;font-size:12px">Registrá el km el día 1 de cada mes (o cualquier día cercano) y acá vas a ver cuánto recorriste cada mes, independiente de las cargas de combustible.</p>
+        ${renderTablaLecturasKm(v.uuid)}
+      </div>
+    </div>
   `;
+}
+
+// Tabla de lecturas de km: además de fecha/km, muestra el km recorrido desde
+// la lectura anterior (delta entre lecturas consecutivas), como referencia
+// rápida independiente del gráfico de arriba.
+function renderTablaLecturasKm(vehiculoId){
+  const asc = lecturasKmVehiculo(vehiculoId);
+  if(!asc.length) return `<div class="empty">Sin lecturas registradas todavía.</div>`;
+  const desc = asc.slice().reverse();
+  return `<table><thead><tr><th>Mes</th><th>Fecha</th><th>Km</th><th>Km del período</th><th></th></tr></thead><tbody>
+    ${desc.map((l,i)=>{
+      const anterior = desc[i+1];
+      const delta = anterior ? Math.max(0, l.km - anterior.km) : null;
+      return `<tr>
+        <td>${new Date(l.fecha).toLocaleDateString('es-AR',{month:'short',year:'2-digit'})}</td>
+        <td class="mono">${fmtFecha(l.fecha)}</td>
+        <td>${fmtKm(l.km)}</td>
+        <td>${delta!==null ? fmtKm(delta) : '—'}</td>
+        <td style="white-space:nowrap">
+          ${esMobile() ? '' : `
+          <button class="btn btn-sm btn-e" onclick="modalRegistrarLecturaKm('${l.uuid}')">✎</button>
+          <button class="btn btn-sm btn-d" onclick="eliminarLecturaKm('${l.uuid}')">✕</button>
+          `}
+        </td>
+      </tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+function modalRegistrarLecturaKm(uuidExistente){
+  if(esMobile()){ alert('⚠️ Las lecturas de km se cargan desde la PC. En el celular los cambios no se preservan (Drive las sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
+  const v = vehiculoActivo();
+  const l = uuidExistente ? DB.lecturasKm.find(x=>x.uuid===uuidExistente) : null;
+  const fechaDefault = l ? l.fecha.slice(0,10) : hoyISO().slice(0,10);
+  const kmDefault = l ? l.km : kmActualVehiculo(v.uuid);
+  abrirModal(l ? '✎ Editar lectura de km' : '🔢 Registrar lectura de km', `
+    <div class="fgrid">
+      <div class="fg"><label>Fecha</label><input type="date" id="f-lect-fecha" value="${fechaDefault}"></div>
+      <div class="fg"><label>Kilometraje</label><input type="number" inputmode="numeric" id="f-lect-km" value="${kmDefault}" onfocus="this.select()"></div>
+    </div>
+    <div class="note" style="margin-top:10px;font-size:11px">Se guarda una sola lectura por mes: si ya existe una para el mes de la fecha elegida, se actualiza en vez de duplicarse.</div>
+  `, `
+    <button class="btn" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn btn-p" onclick="guardarLecturaKm(${uuidExistente ? `'${uuidExistente}'` : 'null'})">Guardar</button>
+  `);
+}
+function guardarLecturaKm(uuidExistente){
+  const v = vehiculoActivo();
+  const fecha = new Date(document.getElementById('f-lect-fecha').value).toISOString();
+  const km = Number(document.getElementById('f-lect-km').value);
+  if(!km || km<=0){ alert('Ingresá un kilometraje válido.'); return; }
+  cerrarModal();
+  if(uuidExistente) editarLecturaKmExacta(uuidExistente, fecha, km);
+  else registrarLecturaKm(v.uuid, fecha, km);
+  goTo('reportes');
 }
 
 function renderVehiculos(){
