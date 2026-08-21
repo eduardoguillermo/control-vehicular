@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.78';
+const VERSION = 'v0.79';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -496,6 +496,15 @@ function fmtFecha(iso){
   return new Date(y, m-1, d).toLocaleDateString('es-AR');
 }
 function hoyISO(){ return new Date().toISOString(); }
+// Extrae año y mes (0-indexado) de un ISO tomando SOLO la parte de fecha
+// (YYYY-MM-DD) como fecha local — igual criterio que fmtFecha. Evita el
+// bug de huso horario negativo (UTC-3): new Date(isoCompleto).getMonth()
+// interpreta el string como UTC y corre un día para atrás, lo que en el
+// día 1 de un mes lo hace caer en el mes anterior.
+function anioMesDeISO(iso){
+  const [y, m] = iso.slice(0,10).split('-').map(Number);
+  return { year: y, month: m-1 };
+}
 function sumar(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
 // Conversión km/L -> L/100km (la otra forma habitual de expresar rendimiento).
 function litrosPor100Km(kmL){ return kmL ? 100/kmL : null; }
@@ -555,13 +564,19 @@ function lecturasKmVehiculo(vehiculoId){
 }
 function lecturaKmMesActual(vehiculoId){
   const hoy = new Date();
-  return DB.lecturasKm.find(l => l.vehiculoId===vehiculoId &&
-    new Date(l.fecha).getFullYear()===hoy.getFullYear() && new Date(l.fecha).getMonth()===hoy.getMonth()) || null;
+  return DB.lecturasKm.find(l => {
+    if(l.vehiculoId!==vehiculoId) return false;
+    const am = anioMesDeISO(l.fecha);
+    return am.year===hoy.getFullYear() && am.month===hoy.getMonth();
+  }) || null;
 }
 function registrarLecturaKm(vehiculoId, fechaISO, km){
-  const d = new Date(fechaISO);
-  const existente = DB.lecturasKm.find(l => l.vehiculoId===vehiculoId &&
-    new Date(l.fecha).getFullYear()===d.getFullYear() && new Date(l.fecha).getMonth()===d.getMonth());
+  const amNueva = anioMesDeISO(fechaISO);
+  const existente = DB.lecturasKm.find(l => {
+    if(l.vehiculoId!==vehiculoId) return false;
+    const am = anioMesDeISO(l.fecha);
+    return am.year===amNueva.year && am.month===amNueva.month;
+  });
   if(existente){
     existente.fecha = fechaISO;
     existente.km = km;
@@ -2654,7 +2669,7 @@ function renderTablaLecturasKm(vehiculoId){
       const anterior = desc[i+1];
       const delta = anterior ? Math.max(0, l.km - anterior.km) : null;
       return `<tr>
-        <td>${new Date(l.fecha).toLocaleDateString('es-AR',{month:'short',year:'2-digit'})}</td>
+        <td>${(()=>{ const am = anioMesDeISO(l.fecha); return new Date(am.year, am.month, 1).toLocaleDateString('es-AR',{month:'short',year:'2-digit'}); })()}</td>
         <td class="mono">${fmtFecha(l.fecha)}</td>
         <td>${fmtKm(l.km)}</td>
         <td>${delta!==null ? fmtKm(delta) : '—'}</td>
