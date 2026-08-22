@@ -748,6 +748,7 @@
       <li>Se guarda <b>una sola lectura por mes</b>: si ya cargaste una para el mes de la fecha elegida, se actualiza en vez de duplicarse — no importa si la cargás el día 1 exacto o unos días después.</li>
       <li>La tabla muestra, para cada lectura: el mes, la fecha exacta, el km, y <b>"Km del período"</b> — la diferencia contra la lectura anterior, es decir, cuánto recorriste entre una y otra.</li>
       <li>Cada lectura se puede editar (✎) o eliminar (✕) desde la misma tabla.</li>
+      <li>Arriba de la tabla, un <b>gráfico de líneas</b> con esos mismos km recorridos, de los últimos 12 meses — para ver de un vistazo la tendencia, sin tener que leer la tabla número por número. Necesita al menos 2 lecturas para tener algo que conectar (una lectura sola no tiene "período" contra el cual compararse, se muestra como un punto solo).</li>
     </ul>
     <div class="warning">Igual que Mantenimientos, Componentes y Gastos, las lecturas de km son <b>solo PC</b>: desde el celular la app avisa y no deja cargar ni editar, para no arriesgar pisar el historial con una copia vieja del teléfono.</div>
     <div class="info">Ver también el recordatorio en el <a href="#dashboard">Dashboard</a>, que avisa si todavía no cargaste la lectura del mes en curso.</div>
@@ -1040,6 +1041,17 @@
         <div class="demo-ch"><div class="demo-ct">🔢 Lecturas de kilometraje mensual</div><span class="demo-btn demo-btn-p">+ Registrar</span></div>
         <div class="demo-card-body">
           <p style="font-size:12px;color:#8b949e;margin-bottom:12px">Registrá el km el día 1 de cada mes (o cualquier día cercano) y acá vas a ver cuánto recorriste cada mes, independiente de las cargas de combustible.</p>
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <div style="position:relative;min-width:200px">
+              <svg viewBox="0 0 200 120" style="width:100%;min-width:200px;height:120px;display:block">
+                <polyline points="22.0,14.0 178.0,23.1" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                <circle cx="22.0" cy="14.0" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>jul 26: 1.310 km</title></circle><circle cx="178.0" cy="23.1" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>ago 26: 1.180 km</title></circle>
+              </svg>
+              <div style="position:relative;width:200px;height:14px">
+                <span style="position:absolute;left:22.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">jul 26</span><span style="position:absolute;left:178.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">ago 26</span>
+              </div>
+            </div>
+          </div>
           <table class="demo-table">
             <thead><tr><th>Mes</th><th>Fecha</th><th>Km</th><th>Km del período</th><th></th></tr></thead>
             <tbody>
@@ -1100,8 +1112,10 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 97 versiones</summary>
+      <summary>Ver las 99 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v1.05</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Cambiar el gráfico de km recorridos por mes (Lecturas de kilometraje) de barras a líneas — SVG hecho a mano, sin librerías</span></div>
+        <div class="changelog-row"><span class="cl-ver">v1.04</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Gráfico con los km recorridos por mes (últimos 12 meses) en la card de Lecturas de kilometraje, calculado directo de las lecturas — independiente del gráfico "Km y gasto por mes"</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.03</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Quitar el fondo oscuro del marco que envuelve el mockup del celular (no la pantalla del celu en sí, que sigue oscura como la app real) — queda flotando sobre el fondo de la página</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.02</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Simular en el mockup de Carga rápida el cálculo bidireccional real de litros/$/litro/total — con 2 completos calcula el tercero solo, igual que la app</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.01</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Más interactividad liviana en pantallas de muestra: "Descartar" oculta la alerta de verdad en el mockup del Dashboard, y las estaciones de Combustible son links reales a Google Maps (igual que en la app)</span></div>
