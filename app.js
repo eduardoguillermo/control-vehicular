@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.90';
+const VERSION = 'v0.91';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];

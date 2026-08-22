@@ -505,7 +505,8 @@
       <tr><td><b>Por km</b></td><td>Neumáticos</td><td>km recorridos ÷ vida útil en km</td></tr>
       <tr><td><b>Por tiempo</b></td><td>Batería</td><td>meses transcurridos ÷ vida útil en meses</td></tr>
     </table>
-    <p>Podés cargar uno solo, o los dos a la vez — en ese caso la app usa el que esté <b>más avanzado</b> (el que se vaya a cumplir primero) para la barra de progreso y para la alerta.</p>
+    <p>Podés cargar uno solo, o los dos a la vez — en ese caso la app usa el que esté <b>más avanzado</b> (el que se vaya a cumplir primero, calculado sobre la vida real hasta hoy o hasta el reemplazo) para la barra de progreso, la alerta, <b>y también para el prorrateo del costo</b> — los tres usan siempre el mismo criterio, para que no queden en desacuerdo entre sí.</p>
+    <div class="warning">Cargar, editar, reemplazar o eliminar un componente <b>solo se puede hacer desde la PC</b>. Si lo intentás desde el celular, la app avisa y no te deja continuar — misma restricción que Mantenimientos y Novedades (ver <a href="#drive">Sincronización con Drive</a>).</div>
     <ul>
       <li>Al cargar o editar un componente, ingresás también su <b>fecha de instalación</b> (no siempre es "hoy" — útil para cargar algo que instalaste hace un tiempo). Si ese dato es aproximado, marcá el check "es estimado".</li>
       <li>Al llegar al 90% de cualquiera de los dos criterios, salta una alerta al cargar combustible. Para lo que vence por tiempo, el mensaje dice <b>"faltan X semanas"</b> (o "vencido hace X semanas"), igual que los mantenimientos dicen "faltan X km".</li>
@@ -541,6 +542,7 @@
       </div>
     </div>
     <h2>Gastos fijos</h2>
+    <div class="warning">Cargar, corregir, actualizar tarifa, fusionar duplicados o eliminar un gasto fijo <b>solo se puede hacer desde la PC</b>. Si lo intentás desde el celular, la app avisa y no te deja continuar — misma restricción que Mantenimientos, Novedades y Componentes (ver <a href="#drive">Sincronización con Drive</a>).</div>
     <p>Seguro, patente, cochera, alarma — cosas que pagás tengas el auto parado o lo uses todos los días. Se cargan con una periodicidad y se prorratean automáticamente según el rango de fechas que estés mirando:</p>
     <table>
       <tr><th>Periodicidad</th><th>Cómo se prorratea</th></tr>
@@ -566,6 +568,7 @@
     <p>Al fusionar, la app reconstruye qué tarifa regía en cada período usando la fecha de inicio de cada registro como corte del anterior, y te muestra el detalle período por período antes de pedir confirmación — no se pierde ni se duplica nada del total ya aportado. El resultado es un solo registro, con el acumulado histórico correcto y la tarifa más reciente como vigente.</p>
     <h2>Gastos variables</h2>
     <p>Multas, peajes, estacionamiento, reparaciones no programadas. (El lavado quedó en Mantenimientos → A demanda, para no duplicar el criterio.)</p>
+    <div class="warning">Cargar o eliminar un gasto variable también <b>solo se puede hacer desde la PC</b>, misma restricción que el resto de esta sección.</div>
     <h2>Costo por kilómetro</h2>
     <p>Elegís un rango de fechas y la app calcula dos números:</p>
     <table>
@@ -617,6 +620,7 @@
     <p>Cada vehículo se identifica por <b>matrícula</b> (no por un nombre libre), y guarda su tipo, marca, modelo, año y kilometraje inicial del odómetro al momento de empezar a usar la app. También podés cargar el <b>propietario</b> (nombre y apellido) — útil cuando el auto no está a tu nombre o cuando en el taller te conocen por el nombre completo y no alcanza con la matrícula. Aparece junto a la matrícula en el selector de vehículo, en la tarjeta de Vehículos y en la <a href="#novedades">Lista para el taller</a>.</p>
     <p>El selector de vehículo activo está siempre visible en la barra superior (PC) o arriba del formulario (celular). Todo lo que cargás — combustible, mantenimientos, componentes, gastos — queda asociado al vehículo que esté activo en ese momento.</p>
     <div class="warning">Eliminar un vehículo borra también <b>todo</b> su historial asociado (cargas, mantenimientos, componentes, gastos). No se puede deshacer.</div>
+    <div class="warning">Dar de alta, editar o eliminar un vehículo <b>solo se puede hacer desde la PC</b>. Si lo intentás desde el celular, la app avisa y no te deja continuar — si todavía no cargaste ningún vehículo, el primero también hay que crearlo desde la PC.</div>
   </div>
 
   <div class="section" id="ajustes">
@@ -701,8 +705,10 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 83 versiones</summary>
+      <summary>Ver las 85 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v0.91</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Documentar en el instructivo las restricciones PC-only de Componentes/Gastos/Vehículos y el criterio unificado de vida útil en Componentes</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.90</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Auditoría completa: tombstones en 7 colecciones + cascada de vehículo/cargas (evita que el auto-sync revierta un borrado), avisos PC-only en Componentes/Gastos/Vehículos, texto de usuario escapado en 4 puntos, y criterio de vida útil consistente entre alertas y costo de componentes</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.89</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Mostrar litros (además del monto) en los KPIs "Combustible este mes" y "Combustible acumulado (año)" del Dashboard</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.88</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Más contraste en --text3 (igualado a --text2, ~5.6:1) para mejor legibilidad en toda la app</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.87</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix de contraste: --text3 tenía ~2.1:1 (ilegible sobre fondo oscuro), corregido a ~4.6:1</span></div>
