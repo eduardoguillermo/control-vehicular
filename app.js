@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.79';
+const VERSION = 'v0.80';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -61,9 +61,10 @@ function normalizarDB(){
       if(!r.lastModified) r.lastModified = Date.now();
     }));
 
-  // Si no hay vehículo activo pero sí hay vehículos, activar el primero
-  if(!DB.config.vehiculoActivo && DB.vehiculos.length){
-    DB.config.vehiculoActivo = DB.vehiculos[0].uuid;
+  // Si no hay vehículo activo pero sí hay vehículos, activar el primero (no eliminado)
+  if(!DB.config.vehiculoActivo){
+    const primero = DB.vehiculos.find(v=>!v._deleted);
+    if(primero) DB.config.vehiculoActivo = primero.uuid;
   }
 
   // Auto-limpieza de cargas duplicadas: si dos cargas del mismo vehículo
@@ -629,7 +630,8 @@ function calcularReporteMensual(vehiculoId){
 
 // ── VEHÍCULOS ─────────────────────────────────────────────────────────────────
 function vehiculoActivo(){
-  return DB.vehiculos.find(v => v.uuid === DB.config.vehiculoActivo) || DB.vehiculos[0] || null;
+  const activos = vehiculosActivos();
+  return activos.find(v => v.uuid === DB.config.vehiculoActivo) || activos[0] || null;
 }
 function cambiarVehiculoActivo(uuid){
   DB.config.vehiculoActivo = uuid;
@@ -661,12 +663,30 @@ function editarVehiculo(uuid, datos){
   tocar(v);
   save();
 }
+// Vehículos "vivos" (no eliminados) — usar SIEMPRE esto en vez de
+// DB.vehiculos directo para cualquier lista/selector visible al usuario,
+// así un vehículo eliminado (tombstone, ver eliminarVehiculo) no reaparece.
+function vehiculosActivos(){
+  return DB.vehiculos.filter(v=>!v._deleted);
+}
 function eliminarVehiculo(uuid){
   if(!confirm('¿Eliminar este vehículo y TODOS sus datos asociados (cargas, mantenimientos, componentes, gastos)? Esta acción no se puede deshacer.')) return;
-  DB.vehiculos = DB.vehiculos.filter(v=>v.uuid!==uuid);
+  const v = DB.vehiculos.find(x=>x.uuid===uuid);
+  if(!v) return;
+  // Tombstone en vez de borrado físico: si se sacara directo del array,
+  // el próximo auto-sync con Drive lo "revivía" al mergear con el backup
+  // remoto (que todavía lo tiene) — cvMergeColeccion no tenía forma de
+  // distinguir "nunca existió" de "se borró a propósito". Con _deleted=true
+  // y lastModified actualizado, el merge (que se queda con el registro más
+  // reciente) respeta el borrado en vez de deshacerlo.
+  v._deleted = true;
+  tocar(v);
   ['cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
     .forEach(k => { DB[k] = DB[k].filter(r => r.vehiculoId !== uuid); });
-  if(DB.config.vehiculoActivo === uuid) DB.config.vehiculoActivo = DB.vehiculos[0] ? DB.vehiculos[0].uuid : null;
+  if(DB.config.vehiculoActivo === uuid){
+    const restante = vehiculosActivos()[0];
+    DB.config.vehiculoActivo = restante ? restante.uuid : null;
+  }
   save();
   goTo('vehiculos');
 }
@@ -1457,9 +1477,10 @@ function cerrarNavMobile(){
 function actualizarSelectorVehiculo(){
   const wrap = document.getElementById('vsel-wrap');
   const sel = document.getElementById('vsel');
-  if(!DB.vehiculos.length){ wrap.style.display='none'; return; }
+  const activos = vehiculosActivos();
+  if(!activos.length){ wrap.style.display='none'; return; }
   wrap.style.display = 'flex';
-  sel.innerHTML = DB.vehiculos.map(v =>
+  sel.innerHTML = activos.map(v =>
     `<option value="${v.uuid}" ${v.uuid===DB.config.vehiculoActivo?'selected':''}>${escHtml(v.nombre)}${v.propietario?' — '+escHtml(v.propietario):''}</option>`
   ).join('');
 }
@@ -2716,7 +2737,7 @@ function renderVehiculos(){
   document.getElementById('pacts').innerHTML = `<button class="btn btn-p btn-sm" onclick="modalNuevoVehiculo()">+ Nuevo vehículo</button>`;
   document.getElementById('content').innerHTML = `
     <div class="proy-grid">
-      ${DB.vehiculos.map(v => {
+      ${vehiculosActivos().map(v => {
         const km = kmActualVehiculo(v.uuid);
         return `<div class="proy-card">
           <div class="proy-card-num">${v.tipo}</div>
@@ -3090,7 +3111,7 @@ function renderVistaRapidaMobile(){
   const existente = document.getElementById('vr-screen');
   if(existente) existente.remove();
 
-  if(!DB.vehiculos.length){
+  if(!vehiculosActivos().length){
     const el = document.createElement('div');
     el.id = 'vr-screen';
     el.className = 'vr-screen';
@@ -3117,10 +3138,10 @@ function renderVistaRapidaMobile(){
     <div class="vr-top">
       <div class="vr-title">⛽ Control Vehicular</div>
       <div class="vr-sub">Carga rápida de combustible</div>
-      ${DB.vehiculos.length > 1 ? `
+      ${vehiculosActivos().length > 1 ? `
       <div class="vr-vsel">
         <select id="vr-vsel" onchange="cambiarVehiculoActivo(this.value); volverVistaMobile();">
-          ${DB.vehiculos.map(veh => `<option value="${veh.uuid}" ${veh.uuid===v.uuid?'selected':''}>${escHtml(veh.nombre)}</option>`).join('')}
+          ${vehiculosActivos().map(veh => `<option value="${veh.uuid}" ${veh.uuid===v.uuid?'selected':''}>${escHtml(veh.nombre)}</option>`).join('')}
         </select>
       </div>` : `<div class="vr-vsel" style="font-size:13px;color:var(--text2);margin-top:8px">🚗 ${escHtml(v.nombre)}</div>`}
     </div>
