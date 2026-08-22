@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.88';
+const VERSION = 'v0.89';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -837,13 +837,15 @@ function kpiUltimoRendimiento(vehiculoId){
 
 function kpiGastoCombustibleMes(vehiculoId){
   const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0);
-  return sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioMes).map(c=>c.totalPagado));
+  const cargas = DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioMes);
+  return { monto: sumar(cargas.map(c=>c.totalPagado)), litros: sumar(cargas.map(c=>c.litros)) };
 }
 
-// KPI: acumulado $ gastado en cargas de combustible en el año calendario actual
+// KPI: acumulado $ y litros gastados en cargas de combustible en el año calendario actual
 function kpiGastoCombustibleAnio(vehiculoId){
   const inicioAnio = new Date(); inicioAnio.setMonth(0,1); inicioAnio.setHours(0,0,0,0);
-  return sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioAnio).map(c=>c.totalPagado));
+  const cargas = DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && new Date(c.fecha)>=inicioAnio);
+  return { monto: sumar(cargas.map(c=>c.totalPagado)), litros: sumar(cargas.map(c=>c.litros)) };
 }
 
 // ── MANTENIMIENTOS ────────────────────────────────────────────────────────────
@@ -1770,8 +1772,8 @@ function renderDashboard(){
       <div class="stat"><div class="stat-n">${fmtKm(km)}</div><div class="stat-l">Km actual</div></div>
       <div class="stat"><div class="stat-n">${rendUlt ? fmtNum(rendUlt,1) : '—'}</div><div class="stat-l">Último rendim. (km/L)</div>${rendUlt?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${fmtNum(litrosPor100Km(rendUlt),1)} L/100km</div>`:''}</div>
       <div class="stat"><div class="stat-n">${rendProm ? fmtNum(rendProm,1) : '—'}</div><div class="stat-l">Promedio 3 meses</div>${rendProm?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${fmtNum(litrosPor100Km(rendProm),1)} L/100km</div>`:''}</div>
-      <div class="stat"><div class="stat-n">${fmtMoney(gastoMes)}</div><div class="stat-l">Combustible este mes</div></div>
-      <div class="stat"><div class="stat-n">${fmtMoney(gastoAnio)}</div><div class="stat-l">Combustible acumulado ${new Date().getFullYear()}</div></div>
+      <div class="stat"><div class="stat-n">${fmtMoney(gastoMes.monto)}</div><div class="stat-l">Combustible este mes</div><div style="font-size:13px;color:var(--text);margin-top:4px;font-weight:600">${fmtNum(gastoMes.litros,1)} L</div></div>
+      <div class="stat"><div class="stat-n">${fmtMoney(gastoAnio.monto)}</div><div class="stat-l">Combustible acumulado ${new Date().getFullYear()}</div><div style="font-size:13px;color:var(--text);margin-top:4px;font-weight:600">${fmtNum(gastoAnio.litros,1)} L</div></div>
       <div class="stat"><div class="stat-n">${costoKm ? fmtMoney(costoKm.costoPorKmTotal) : '—'}</div><div class="stat-l">Costo / km (12m)</div></div>
       <div class="stat" style="min-width:230px;max-width:280px;text-align:left;cursor:pointer" onclick="goTo('mantenimientos')">
         <div class="stat-l" style="margin-bottom:6px">⚠️ Novedades pendientes${novedadesDash.length?` (${novedadesDash.length})`:''}</div>
