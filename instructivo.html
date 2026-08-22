@@ -351,6 +351,38 @@
       <li>Alertas activas (mantenimiento vencido o componente por cambiar) arriba de todo</li>
     </ul>
     <div class="note">Si todavía no registraste el <b>km del mes en curso</b> (ver <a href="#reportes">Lecturas de kilometraje mensual</a>), arriba de todo aparece un aviso "📅 Todavía no registraste el km de este mes" con botón directo para cargarlo. Solo se muestra en PC.</div>
+
+    <h2>Cómo se calcula cada KPI</h2>
+    <p>Todos son <b>por vehículo</b> — se recalculan según cuál esté activo en el selector.</p>
+    <table>
+      <thead><tr><th>KPI</th><th>Cómo se calcula</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>📍 Km actual</td>
+          <td>El mayor valor de km entre el km inicial del vehículo, todas las cargas de combustible y todos los mantenimientos realizados. No depende de las <a href="#reportes">lecturas de km mensuales</a> — ese módulo es independiente.</td>
+        </tr>
+        <tr>
+          <td>⛽ Último rendimiento (km/L)</td>
+          <td>El rendimiento de la carga con <b>tanque lleno</b> más reciente. Se calcula así: km recorridos desde el tanque lleno <i>anterior</i>, dividido los litros totales cargados en el medio (sumando también las cargas parciales intermedias). Por eso una carga necesita el tanque lleno anterior <i>y</i> el actual marcados para tener rendimiento propio — una parcial sola no lo genera, pero sí aporta sus litros al cálculo de la próxima llena.</td>
+        </tr>
+        <tr>
+          <td>📊 Promedio 3 meses</td>
+          <td>Promedio simple (no ponderado por km) de los rendimientos ya calculados de todas las cargas con tanque lleno de los últimos 3 meses por fecha.</td>
+        </tr>
+        <tr>
+          <td>💰 Combustible este mes</td>
+          <td>Suma de lo pagado en todas las cargas desde el día 1 del mes calendario en curso.</td>
+        </tr>
+        <tr>
+          <td>💰 Combustible acumulado (año)</td>
+          <td>Lo mismo, pero desde el 1 de enero del año en curso.</td>
+        </tr>
+        <tr>
+          <td>🔧 Costo / km (12 meses)</td>
+          <td>El más completo. Toma la ventana móvil de los últimos 12 meses, calcula los km recorridos (última carga menos primera carga del período) y divide el <b>gasto total</b> por esos km. El gasto total suma combustible + mantenimientos realizados + componentes instalados + gastos variables + gastos fijos (estos últimos prorrateados por los días que caen dentro del período). Si en esos 12 meses hay menos de 2 cargas — no hay km de referencia — muestra "—".</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="section" id="vencimientos">
@@ -645,8 +677,12 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 71 versiones</summary>
+      <summary>Ver las 75 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v0.81</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Explicar en el instructivo cómo se calcula cada KPI del Dashboard</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.80</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix: borrado de vehículos con tombstone — el auto-sync con Drive lo revivía; filtrar vehículos eliminados en todos los selectores/listas</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.79</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Fix de huso horario (UTC-3) en las lecturas de km — el aviso de "falta registrar" no reconocía una lectura del día 1 ya cargada</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.78</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Changelog como un único desplegable con toda la lista adentro, no cada versión por separado</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.77</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Documentar estación/ubicación, Ajustes y este historial de cambios en el instructivo (colapsable)</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.76</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Documentar las lecturas de km mensuales en el instructivo</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.75</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Lecturas de kilometraje mensual: registro manual con recordatorio en el Dashboard, independiente de las cargas de combustible</span></div>
