@@ -540,6 +540,20 @@
       <tr><td><b>Único</b></td><td>el monto completo, una sola vez, en el mes de su fecha de inicio</td></tr>
     </table>
     <div class="note">Un gasto fijo nunca se cuenta en meses <b>anteriores</b> a su fecha de inicio — si lo cargaste este mes, no aparece retroactivamente en meses pasados aunque el rango que estés mirando los incluya.</div>
+    <div class="note">Un solo gasto fijo <b>por tipo</b> y por vehículo (un Seguro, una Patente, etc.) — salvo "Otro", que admite varios porque es el cajón de sastre para gastos puntuales sin categoría propia. La app avisa si intentás crear un segundo del mismo tipo, y te redirige a 💲 Actualizar tarifa en vez de duplicar.</div>
+    <p>Se carga <b>una sola vez</b> — no hace falta volver a cargarlo cada mes, queda como un registro permanente. Desde la tabla hay dos acciones distintas, según qué necesites:</p>
+    <table>
+      <tr><th>Acción</th><th>Para qué sirve</th></tr>
+      <tr><td>✎ Corregir</td><td>Arreglar un error de carga (tipeaste mal el monto, elegiste mal la periodicidad). Edita el registro tal cual está, sin afectar nada más.</td></tr>
+      <tr><td>💲 Actualizar tarifa</td><td>Registrar un aumento real (ej. inflación). No crea un registro nuevo — evita terminar con una lista enorme de "Seguro enero", "Seguro febrero", etc. si ajustás todos los meses.</td></tr>
+    </table>
+    <p><b>Cómo funciona "Actualizar tarifa":</b> el gasto fijo guarda un monto <i>vigente</i> (el que se prorratea de ahora en más) y un <i>acumulado histórico</i> (lo ya aportado con tarifas anteriores, congelado). Al actualizar la tarifa: lo que la tarifa vieja aportó desde la última actualización hasta la fecha que elijas se suma al acumulado histórico, y a partir de esa fecha el monto nuevo pasa a ser el vigente. Un mismo gasto fijo puede actualizarse tantas veces como haga falta (incluso todos los meses) sin acumular registros.</p>
+    <div class="note">En la tabla, la columna <b>"Acum. histórico"</b> muestra el total ya congelado de tarifas anteriores (— si nunca se actualizó), y <b>"Vigente desde"</b> la fecha desde la que rige el monto actual.</div>
+    <div class="warning">El acumulado histórico se guarda como un <b>total único</b>, sin el detalle mes a mes de qué tarifa regía en cada momento. Por eso, si pedís un costo por km de un rango de fechas que <b>empieza antes</b> de la última actualización de tarifa, el acumulado histórico entra completo en el cálculo — no se puede prorratear con precisión por mes dentro de ese período. Para un rango que cae completamente antes o completamente después de la última actualización, el cálculo es exacto.</div>
+    <h2>🔗 Gastos fijos duplicados</h2>
+    <p>Si tenés más de un registro del mismo tipo (típico de antes de que existiera 💲 Actualizar tarifa — se cargaba un gasto fijo nuevo por cada aumento, sin cerrar el viejo), aparece un aviso arriba de todo en Gastos con un botón "Ver detalle y fusionar" por cada tipo duplicado.</p>
+    <div class="warning">Mientras haya duplicados sin fusionar, el costo por km los suma <b>a todos de golpe</b> (cada uno desde su propia fecha de inicio, sin techo) en vez de aplicar el que correspondía en cada momento — el número que ves queda inflado.</div>
+    <p>Al fusionar, la app reconstruye qué tarifa regía en cada período usando la fecha de inicio de cada registro como corte del anterior, y te muestra el detalle período por período antes de pedir confirmación — no se pierde ni se duplica nada del total ya aportado. El resultado es un solo registro, con el acumulado histórico correcto y la tarifa más reciente como vigente.</p>
     <h2>Gastos variables</h2>
     <p>Multas, peajes, estacionamiento, reparaciones no programadas. (El lavado quedó en Mantenimientos → A demanda, para no duplicar el criterio.)</p>
     <h2>Costo por kilómetro</h2>
@@ -677,8 +691,12 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 75 versiones</summary>
+      <summary>Ver las 79 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v0.85</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Herramienta para fusionar gastos fijos duplicados del mismo tipo (de antes de "Actualizar tarifa") — reconstruye qué tarifa regía en cada período y muestra el detalle antes de confirmar, sin perder el acumulado real</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.84</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Un solo gasto fijo por tipo y vehículo (salvo "Otro") — avisa si se intenta duplicar en vez de crear otro registro</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.83</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Gastos fijos: "💲 Actualizar tarifa" para ajustes de precio (inflación) sin crear un registro nuevo por mes — congela lo aportado por la tarifa vieja en un acumulado histórico y sigue con la nueva desde la fecha del cambio</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.82</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Editar gastos fijos (✎ Corregir, para errores de carga)</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.81</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Explicar en el instructivo cómo se calcula cada KPI del Dashboard</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.80</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix: borrado de vehículos con tombstone — el auto-sync con Drive lo revivía; filtrar vehículos eliminados en todos los selectores/listas</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.79</span><span class="cl-date">2026-08-21</span><span class="cl-desc">Fix de huso horario (UTC-3) en las lecturas de km — el aviso de "falta registrar" no reconocía una lectura del día 1 ya cargada</span></div>
