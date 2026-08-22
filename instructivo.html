@@ -316,7 +316,7 @@
   .demo-comp-title{font-weight:700;color:#e6edf3;font-size:12px;margin-bottom:2px}
   .demo-comp-sub{font-size:10px;color:#7d8590;margin-bottom:6px}
   .vprog{height:6px;background:#30363d;border-radius:3px;overflow:hidden;margin:4px 0}
-  .vprog-bar{height:6px;border-radius:3px}
+  .vprog-bar{height:6px;border-radius:3px;cursor:help}
   .vprog-ok{background:#3fb950}
   .vprog-warn{background:#d29922}
   .vprog-crit{background:#f85149}
@@ -333,11 +333,15 @@
   .demo-vr-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:11px}
   .demo-vr-fg label{font-size:9px;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
   .demo-vr-input{padding:10px 11px;border:1px solid #30363d;border-radius:8px;font-size:13px;background:#21262d;color:#e6edf3}
+  .demo-vr-select{padding:10px 11px;border:1px solid #30363d;border-radius:8px;font-size:13px;background:#21262d;color:#e6edf3;width:100%;font-family:inherit;-webkit-appearance:none;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%238b949e' d='M6 8 0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:10px 7px}
+  .demo-vr-select:focus{outline:1px solid #7c5cff}
   .demo-vr-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .demo-vr-switch{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#21262d;border:1px solid #30363d;border-radius:8px}
   .demo-vr-switch label{font-size:11px;font-weight:600;color:#e6edf3}
-  .demo-vr-switch-dot{width:36px;height:19px;background:#7c5cff;border-radius:10px;position:relative}
-  .demo-vr-switch-dot::after{content:'';width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px}
+  .demo-vr-switch-dot{width:36px;height:19px;background:#7c5cff;border-radius:10px;position:relative;cursor:pointer;transition:background .15s}
+  .demo-vr-switch-dot::after{content:'';width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;transition:right .15s,left .15s}
+  .demo-vr-switch-dot.off{background:#30363d}
+  .demo-vr-switch-dot.off::after{right:auto;left:2px}
   .demo-vr-gps{text-align:center;font-size:10px;color:#8b949e;padding:7px;background:#21262d;border:1px solid #30363d;border-radius:8px}
   .demo-vr-btn-main{padding:12px;border-radius:8px;background:#7c5cff;color:#fff;font-size:13px;font-weight:700;text-align:center}
   .demo-vr-footer{padding:9px 16px;background:#161b22;border-top:1px solid #30363d;display:flex;gap:8px}
@@ -866,8 +870,8 @@
     <div class="screenshot-frame">
       <div class="screenshot-label">Ejemplo con datos de muestra</div>
       <div class="demo-alert-stack">
-        <div class="demo-alert demo-alert-warn"><span>🔧️ Toca "Cambio de aceite" (programado a los 50.000 km, ya llevás 49.850 km)</span><span class="demo-btn">Descartar</span></div>
-        <div class="demo-alert demo-alert-crit"><span>🛞 Batería al 93% de su vida útil (por tiempo) — faltan 2 semanas</span><span class="demo-btn">Descartar</span></div>
+        <div class="demo-alert demo-alert-warn"><span>🔧️ Toca "Cambio de aceite" (programado a los 50.000 km, ya llevás 49.850 km)</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
+        <div class="demo-alert demo-alert-crit"><span>🛞 Batería al 93% de su vida útil (por tiempo) — faltan 2 semanas</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
       </div>
       <div class="demo-stats">
         <div class="demo-stat"><div class="demo-stat-n">48.230</div><div class="demo-stat-l">Km actual</div></div>
@@ -915,12 +919,12 @@
         <div class="demo-card-body">
           <div style="margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Neumáticos — Bridgestone 195/65</span><span style="color:#8b949e">74%</span></div>
-            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%"></div></div>
+            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
             <div style="font-size:11px;color:#7d8590">Próximo cambio estimado: ~50.000 km</div>
           </div>
           <div>
             <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Batería</span><span style="color:#8b949e">93%</span></div>
-            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%"></div></div>
+            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
             <div style="font-size:11px;color:#7d8590">Faltan 2 semanas (~05/09/2026)</div>
           </div>
         </div>
@@ -940,9 +944,9 @@
           <table class="demo-table">
             <thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍 Estación</th><th></th></tr></thead>
             <tbody>
-              <tr><td>21/08/2026</td><td>48.230</td><td>YPF</td><td>Super</td><td>32,4 L</td><td>$2.000</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td><td>YPF Ruta 9, Maldonado</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>05/08/2026</td><td>47.680</td><td>Shell</td><td>Premium</td><td>29,9 L</td><td>$2.048</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td><td>Shell Av. España</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>22/07/2026</td><td>47.030</td><td>YPF</td><td>Super</td><td>18,2 L</td><td>$1.980</td><td>$36.040</td><td>—</td><td>—</td><td>YPF Los Aromos</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>21/08/2026</td><td>48.230</td><td>YPF</td><td>Super</td><td>32,4 L</td><td>$2.000</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Ruta+9+Maldonado" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Ruta 9, Maldonado</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>05/08/2026</td><td>47.680</td><td>Shell</td><td>Premium</td><td>29,9 L</td><td>$2.048</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=Shell+Av.+Espa%C3%B1a" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 Shell Av. España</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>22/07/2026</td><td>47.030</td><td>YPF</td><td>Super</td><td>18,2 L</td><td>$1.980</td><td>$36.040</td><td>—</td><td>—</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Los+Aromos" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Los Aromos</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -962,7 +966,7 @@
               <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
             </div>
             <div class="demo-comp-sub">Instalado: 42.000 km · 12/03/2026 ✅</div>
-            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%"></div></div>
+            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
             <div class="demo-comp-detail">6.230 km recorridos (74% por km)</div>
             <div class="demo-comp-detail">Próx. cambio: ~50.000 km — limita por km</div>
           </div>
@@ -972,7 +976,7 @@
               <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
             </div>
             <div class="demo-comp-sub">Instalado: 30.500 km · 02/01/2025 ✅</div>
-            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%"></div></div>
+            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
             <div class="demo-comp-detail">33,5 meses transcurridos (93% por tiempo)</div>
             <div class="demo-comp-detail">Próx. cambio: faltan 2 semanas (~05/09/2026) — limita por tiempo</div>
           </div>
@@ -1049,6 +1053,7 @@
     </div>
 
     <h2>📱 Carga rápida (celular)</h2>
+    <p style="font-size:12px;color:#64748b;margin-bottom:6px">🖱️ Los campos <b>Marca</b>, <b>Tipo</b> y el switch de tanque lleno de este ejemplo funcionan de verdad — probalos. No guardan nada, es solo para que veas cómo se ven las opciones.</p>
     <div class="screenshot-frame" style="display:flex;justify-content:center">
       <div style="width:100%">
         <div class="screenshot-label" style="justify-content:center">Ejemplo con datos de muestra</div>
@@ -1063,15 +1068,19 @@
             <div class="demo-vr-gps">📍 YPF Ruta 9, Maldonado</div>
             <div class="demo-vr-fg"><label>Kilometraje actual</label><div class="demo-vr-input">48.230</div></div>
             <div class="demo-vr-row">
-              <div class="demo-vr-fg"><label>Marca</label><div class="demo-vr-input">YPF</div></div>
-              <div class="demo-vr-fg"><label>Tipo</label><div class="demo-vr-input">Super</div></div>
+              <div class="demo-vr-fg"><label>Marca</label><select class="demo-vr-select">
+                <option>Axion</option><option selected>YPF</option><option>Shell</option><option>Otras</option>
+              </select></div>
+              <div class="demo-vr-fg"><label>Tipo</label><select class="demo-vr-select">
+                <option selected>Super</option><option>Premium</option>
+              </select></div>
             </div>
             <div class="demo-vr-row">
               <div class="demo-vr-fg"><label>Litros</label><div class="demo-vr-input">32,4</div></div>
               <div class="demo-vr-fg"><label>$ / Litro</label><div class="demo-vr-input">$2.000</div></div>
             </div>
             <div class="demo-vr-fg"><label>Total pagado</label><div class="demo-vr-input">$64.800</div></div>
-            <div class="demo-vr-switch"><label>⛽ ¿Tanque lleno?</label><div class="demo-vr-switch-dot"></div></div>
+            <div class="demo-vr-switch"><label>⛽ ¿Tanque lleno?</label><div class="demo-vr-switch-dot" onclick="this.classList.toggle('off')" title="Tocá para probar"></div></div>
             <div class="demo-vr-btn-main">Guardar carga</div>
           </div>
           <div class="demo-vr-footer"><div>🔄 Sincronizar</div><div>🚪 Guardar y salir</div></div>
@@ -1091,8 +1100,10 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 93 versiones</summary>
+      <summary>Ver las 95 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v1.01</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Más interactividad liviana en pantallas de muestra: "Descartar" oculta la alerta de verdad en el mockup del Dashboard, y las estaciones de Combustible son links reales a Google Maps (igual que en la app)</span></div>
+        <div class="changelog-row"><span class="cl-ver">v1.00</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Pantallas de muestra con interactividad liviana: Marca/Tipo en la carga rápida del celular ahora son selects reales (probables, sin guardar nada), el switch de tanque lleno se puede tocar, y las barras de vida útil muestran tooltip con el detalle exacto al pasar el mouse</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.99</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix visual: texto de las novedades en la card "Novedades pendientes" del mockup del Dashboard se veía en negro sobre fondo oscuro (sin color propio, heredaba el negro del documento) — corregido a blanco</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.98</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix visual en pantallas de muestra: filas pares de las tablas tenían fondo casi blanco heredado del documento (texto claro ilegible encima) — corregido con fondo propio en cada celda; achicadas las stat cards del Dashboard para que los 6 KPIs + Novedades entren en una sola fila</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.97</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Reconstruir todas las pantallas de muestra contra el código real: faltaban las cards "Últimas cargas"/"Próximos mantenimientos"/"Estado de componentes"/"Novedades pendientes" en Dashboard, columna Tipo y botones ✎✕ en Combustible, botones reales y segunda línea de detalle en Componentes más su historial de reemplazos, card de Lecturas en Reportes, y el título/subtítulo/selector de vehículo del celular estaban inventados</span></div>
