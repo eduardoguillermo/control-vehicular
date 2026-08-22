@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.89';
+const VERSION = 'v0.90';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -533,15 +533,15 @@ function kmAlFinDeFecha(vehiculoId, fechaISO){
   const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
   let km = v ? (v.km_inicial||0) : 0;
   DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha<=fechaISO).forEach(c=>{ if(c.km>km) km=c.km; });
-  DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha<=fechaISO).forEach(m=>{ if(m.kilometraje_realizado>km) km=m.kilometraje_realizado; });
+  DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId && m.fecha<=fechaISO).forEach(m=>{ if(m.kilometraje_realizado>km) km=m.kilometraje_realizado; });
   return km;
 }
 function gastoTotalDelPeriodo(vehiculoId, desde, hasta){
   const totalCombustible = sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha>=desde && c.fecha<=hasta).map(c=>c.totalPagado));
-  const totalMantenimientos = sumar(DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=desde && m.fecha<=hasta).map(m=>m.costo||0));
-  const totalComponentes = sumar(DB.componentes.filter(c=>c.vehiculoId===vehiculoId).map(c=>prorratearComponente(c, vehiculoId, desde, hasta)));
-  const totalVariablesExtra = sumar(DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=desde && g.fecha<=hasta).map(g=>g.monto));
-  const totalFijos = sumar(DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, desde, hasta)));
+  const totalMantenimientos = sumar(DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId && m.fecha>=desde && m.fecha<=hasta).map(m=>m.costo||0));
+  const totalComponentes = sumar(DB.componentes.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).map(c=>prorratearComponente(c, vehiculoId, desde, hasta)));
+  const totalVariablesExtra = sumar(DB.gastosVariables.filter(g=>!g._deleted && g.vehiculoId===vehiculoId && g.fecha>=desde && g.fecha<=hasta).map(g=>g.monto));
+  const totalFijos = sumar(DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, desde, hasta)));
   return totalCombustible + totalMantenimientos + totalComponentes + totalVariablesExtra + totalFijos;
 }
 // Fecha más antigua con algún dato cargado para este vehículo (primera carga,
@@ -552,10 +552,10 @@ function primeraFechaConDatos(vehiculoId){
   // de cuándo se creó el registro, no necesariamente cuándo arrancaron los
   // datos reales. El reporte solo debe empezar donde hay carga/gasto real.
   DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha));
-  DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).forEach(m=>fechas.push(m.fecha));
-  DB.componentes.filter(c=>c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha_instalacion));
-  DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha));
-  DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha_inicio));
+  DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId).forEach(m=>fechas.push(m.fecha));
+  DB.componentes.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).forEach(c=>fechas.push(c.fecha_instalacion));
+  DB.gastosVariables.filter(g=>!g._deleted && g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha));
+  DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId).forEach(g=>fechas.push(g.fecha_inicio));
   if(!fechas.length) return new Date();
   fechas.sort();
   return new Date(fechas[0]);
@@ -568,12 +568,12 @@ function primeraFechaConDatos(vehiculoId){
 // kmAlFinDeFecha/kmActualVehiculo ni el gráfico "Km y gasto por mes" — solo
 // responde "cuántos km recorrí cada mes" en base a estas lecturas.
 function lecturasKmVehiculo(vehiculoId){
-  return DB.lecturasKm.filter(l=>l.vehiculoId===vehiculoId).sort((a,b)=> new Date(a.fecha) - new Date(b.fecha));
+  return DB.lecturasKm.filter(l=>!l._deleted && l.vehiculoId===vehiculoId).sort((a,b)=> new Date(a.fecha) - new Date(b.fecha));
 }
 function lecturaKmMesActual(vehiculoId){
   const hoy = new Date();
   return DB.lecturasKm.find(l => {
-    if(l.vehiculoId!==vehiculoId) return false;
+    if(l._deleted || l.vehiculoId!==vehiculoId) return false;
     const am = anioMesDeISO(l.fecha);
     return am.year===hoy.getFullYear() && am.month===hoy.getMonth();
   }) || null;
@@ -581,7 +581,7 @@ function lecturaKmMesActual(vehiculoId){
 function registrarLecturaKm(vehiculoId, fechaISO, km){
   const amNueva = anioMesDeISO(fechaISO);
   const existente = DB.lecturasKm.find(l => {
-    if(l.vehiculoId!==vehiculoId) return false;
+    if(l._deleted || l.vehiculoId!==vehiculoId) return false;
     const am = anioMesDeISO(l.fecha);
     return am.year===amNueva.year && am.month===amNueva.month;
   });
@@ -608,9 +608,15 @@ function editarLecturaKmExacta(uuid, fechaISO, km){
   save();
   return l;
 }
+// Tombstone (no se borra el registro): si se sacara del array, el próximo
+// auto-sync con Drive lo revivía al mergear con el backup remoto, que
+// todavía lo tiene (mismo bug que ya se corrigió para vehículos).
 function eliminarLecturaKm(uuid){
   if(!confirm('¿Eliminar esta lectura de kilometraje?')) return;
-  DB.lecturasKm = DB.lecturasKm.filter(l=>l.uuid!==uuid);
+  const l = DB.lecturasKm.find(x=>x.uuid===uuid);
+  if(!l) return;
+  l._deleted = true;
+  tocar(l);
   save();
   goTo('reportes');
 }
@@ -677,6 +683,7 @@ function vehiculosActivos(){
   return DB.vehiculos.filter(v=>!v._deleted);
 }
 function eliminarVehiculo(uuid){
+  if(esMobile()){ alert('⚠️ Los vehículos se dan de alta/baja desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este vehículo y TODOS sus datos asociados (cargas, mantenimientos, componentes, gastos)? Esta acción no se puede deshacer.')) return;
   const v = DB.vehiculos.find(x=>x.uuid===uuid);
   if(!v) return;
@@ -688,8 +695,11 @@ function eliminarVehiculo(uuid){
   // reciente) respeta el borrado en vez de deshacerlo.
   v._deleted = true;
   tocar(v);
+  // Cascada también por tombstone (no filter físico) — mismo motivo: un
+  // array.filter directo en cualquiera de estas colecciones se podía
+  // deshacer solo con el próximo auto-sync de Drive.
   ['cargas','mantenimientosProgramados','mantenimientosRealizados','novedades','componentes','gastosFijos','gastosVariables','alertas','lecturasKm']
-    .forEach(k => { DB[k] = DB[k].filter(r => r.vehiculoId !== uuid); });
+    .forEach(k => { DB[k].filter(r => r.vehiculoId === uuid).forEach(r => { r._deleted = true; tocar(r); }); });
   if(DB.config.vehiculoActivo === uuid){
     const restante = vehiculosActivos()[0];
     DB.config.vehiculoActivo = restante ? restante.uuid : null;
@@ -703,7 +713,7 @@ function kmActualVehiculo(vehiculoId){
   const v = DB.vehiculos.find(x=>x.uuid===vehiculoId);
   let km = v ? (v.km_inicial||0) : 0;
   DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId).forEach(c => { if(c.km > km) km = c.km; });
-  DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).forEach(m => { if(m.kilometraje_realizado > km) km = m.kilometraje_realizado; });
+  DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId).forEach(m => { if(m.kilometraje_realizado > km) km = m.kilometraje_realizado; });
   return km;
 }
 
@@ -870,19 +880,25 @@ function editarMantenimientoProgramado(uuid, datos){
   });
   tocar(m); save();
 }
+// Tombstone en vez de borrado físico (mismo motivo que cargas/vehículos):
+// un borrado físico se podía deshacer solo con el próximo auto-sync de
+// Drive. La cascada a realizados también queda como tombstone, para no
+// reintroducir el mismo problema un nivel más abajo.
 function eliminarMantenimientoProgramado(uuid){
   if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este mantenimiento programado y su historial de realizaciones?')) return;
-  DB.mantenimientosProgramados = DB.mantenimientosProgramados.filter(m=>m.uuid!==uuid);
-  DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.mantenimientoProgramadoId!==uuid);
-  DB.alertas = DB.alertas.filter(a=>a.mantenimientoProgramadoId!==uuid);
+  const m = DB.mantenimientosProgramados.find(x=>x.uuid===uuid);
+  if(!m) return;
+  m._deleted = true; tocar(m);
+  DB.mantenimientosRealizados.filter(r=>r.mantenimientoProgramadoId===uuid).forEach(r=>{ r._deleted = true; tocar(r); });
+  DB.alertas.filter(a=>a.mantenimientoProgramadoId===uuid).forEach(a=>{ a._deleted = true; tocar(a); });
   save();
   goTo('mantenimientos');
 }
 
 function ultimoRealizado(mantenimientoProgramadoId){
   const realizados = DB.mantenimientosRealizados
-    .filter(m=>m.mantenimientoProgramadoId===mantenimientoProgramadoId)
+    .filter(m=>!m._deleted && m.mantenimientoProgramadoId===mantenimientoProgramadoId)
     .sort((a,b)=>a.kilometraje_realizado - b.kilometraje_realizado);
   return realizados.length ? realizados[realizados.length-1] : null;
 }
@@ -914,19 +930,22 @@ function registrarMantenimientoRealizado(datos){
   save();
   return r;
 }
+// Tombstone en vez de borrado físico (ver eliminarMantenimientoProgramado).
 function eliminarMantenimientoRealizado(uuid){
   if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este registro de mantenimiento realizado?')) return;
   const r = DB.mantenimientosRealizados.find(m=>m.uuid===uuid);
+  if(!r) return;
   // Si este registro vino de resolver una novedad, la novedad vuelve a quedar pendiente
-  if(r && r.origenNovedadId){
+  if(r.origenNovedadId){
     const nov = DB.novedades.find(n=>n.uuid===r.origenNovedadId);
     if(nov){
       Object.assign(nov, { fecha_solucion:null, km_solucion:null, costo:0, mantenimientoRealizadoId:null });
       tocar(nov);
     }
   }
-  DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.uuid!==uuid);
+  r._deleted = true;
+  tocar(r);
   save();
   goTo('mantenimientos');
 }
@@ -939,7 +958,7 @@ function eliminarMantenimientoRealizado(uuid){
 // "a demanda" para que el costo sume al $/km igual que cualquier otro
 // mantenimiento, sin duplicar la lógica de costoPorKm/gastoTotalDelPeriodo.
 function novedadesDeVehiculo(vehiculoId){
-  return DB.novedades.filter(n=>n.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha_ocurrencia)-new Date(a.fecha_ocurrencia));
+  return DB.novedades.filter(n=>!n._deleted && n.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha_ocurrencia)-new Date(a.fecha_ocurrencia));
 }
 function novedadesPendientes(vehiculoId){
   return novedadesDeVehiculo(vehiculoId).filter(n=>!n.fecha_solucion);
@@ -973,14 +992,20 @@ function editarNovedad(uuid, datos){
   });
   tocar(n); save();
 }
+// Tombstone en vez de borrado físico. Novedades ya se mergea por uuid igual
+// que cargas (ver cvMergeColeccion), así que el tombstone encaja directo
+// con ese mecanismo sin tocar nada más del merge.
 function eliminarNovedad(uuid){
   if(esMobile()){ alert('⚠️ Resolver, editar o eliminar novedades se hace desde la PC. Desde el cel podés cargar novedades nuevas, pero no modificar las existentes.'); return; }
   if(!confirm('¿Eliminar esta novedad? Si ya fue resuelta, también se borra el registro de mantenimiento asociado.')) return;
   const n = DB.novedades.find(x=>x.uuid===uuid);
-  if(n && n.mantenimientoRealizadoId){
-    DB.mantenimientosRealizados = DB.mantenimientosRealizados.filter(m=>m.uuid!==n.mantenimientoRealizadoId);
+  if(!n) return;
+  if(n.mantenimientoRealizadoId){
+    const r = DB.mantenimientosRealizados.find(m=>m.uuid===n.mantenimientoRealizadoId);
+    if(r){ r._deleted = true; tocar(r); }
   }
-  DB.novedades = DB.novedades.filter(x=>x.uuid!==uuid);
+  n._deleted = true;
+  tocar(n);
   save();
   goTo('mantenimientos');
 }
@@ -1070,14 +1095,14 @@ function claseGravedad(g){
 
 // Cruce de km con mantenimientos programados. Se ejecuta al cargar combustible.
 function verificarMantenimientos(vehiculoId, kmActual){
-  const programados = DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId);
+  const programados = DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===vehiculoId);
   const disparadas = [];
 
   programados.forEach(prog => {
     const proximoKm = proximoKmMantenimiento(prog);
     if(kmActual >= proximoKm){
       const yaAlertado = DB.alertas.some(a =>
-        a.mantenimientoProgramadoId===prog.uuid && a.proximoKmEsperado===proximoKm && !a.atendida
+        !a._deleted && a.mantenimientoProgramadoId===prog.uuid && a.proximoKmEsperado===proximoKm && !a.atendida
       );
       if(!yaAlertado){
         const alerta = tocar({
@@ -1101,7 +1126,7 @@ function verificarMantenimientos(vehiculoId, kmActual){
 }
 
 function alertasActivas(vehiculoId){
-  return DB.alertas.filter(a=>a.vehiculoId===vehiculoId && !a.atendida).sort((a,b)=> new Date(b.fecha)-new Date(a.fecha));
+  return DB.alertas.filter(a=>!a._deleted && a.vehiculoId===vehiculoId && !a.atendida).sort((a,b)=> new Date(b.fecha)-new Date(a.fecha));
 }
 function descartarAlerta(uuid){
   const a = DB.alertas.find(x=>x.uuid===uuid);
@@ -1112,7 +1137,7 @@ function descartarAlerta(uuid){
 
 // ── COMPONENTES (neumáticos, batería, otros) ─────────────────────────────────
 function componentesVehiculo(vehiculoId, soloActivos=false){
-  let list = DB.componentes.filter(c=>c.vehiculoId===vehiculoId);
+  let list = DB.componentes.filter(c=>!c._deleted && c.vehiculoId===vehiculoId);
   if(soloActivos) list = list.filter(c=>c.activo);
   return list.sort((a,b)=> new Date(b.fecha_instalacion)-new Date(a.fecha_instalacion));
 }
@@ -1177,9 +1202,14 @@ function reemplazarComponente(componenteAnteriorId, kmActual, nuevoComponenteDat
   };
 }
 
+// Tombstone en vez de borrado físico (mismo motivo que las demás colecciones).
 function eliminarComponente(uuid){
+  if(esMobile()){ alert('⚠️ Los componentes se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este componente y su historial?')) return;
-  DB.componentes = DB.componentes.filter(c=>c.uuid!==uuid);
+  const c = DB.componentes.find(x=>x.uuid===uuid);
+  if(!c) return;
+  c._deleted = true;
+  tocar(c);
   save();
   goTo('componentes');
 }
@@ -1237,7 +1267,7 @@ function estadoComponente(componente, kmActual){
 
 function historicoVidaUtilPorTipo(vehiculoId, tipo){
   return DB.componentes
-    .filter(c=>c.vehiculoId===vehiculoId && c.tipo===tipo && c.km_reemplazo!==null)
+    .filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.tipo===tipo && c.km_reemplazo!==null)
     .map(c => {
       const vidaUtilRealMeses = mesesTranscurridosDesde(c.fecha_instalacion, c.fecha_reemplazo);
       return {
@@ -1261,7 +1291,7 @@ function verificarComponentes(vehiculoId, kmActual){
     if(!c.vida_util_estimada_km && !c.vida_util_meses) return;
     const estado = estadoComponente(c, kmActual);
     if(estado.porcentajeUsado >= 90){
-      const yaAlertado = DB.alertas.some(a => a.componenteId===c.uuid && !a.atendida);
+      const yaAlertado = DB.alertas.some(a => !a._deleted && a.componenteId===c.uuid && !a.atendida);
       if(!yaAlertado){
         const detalleProximo = estado.criterioLimitante === 'tiempo'
           ? (estado.semanasRestantes <= 0 ? `vencido hace ${fmtSemanas(estado.semanasRestantes)}` : `faltan ${fmtSemanas(estado.semanasRestantes)}`)
@@ -1339,9 +1369,14 @@ function actualizarTarifaGastoFijo(uuid, montoNuevo, fechaHoy){
   save();
   return g;
 }
+// Tombstone en vez de borrado físico (mismo motivo que las demás colecciones).
 function eliminarGastoFijo(uuid){
+  if(esMobile()){ alert('⚠️ Los gastos fijos se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este gasto fijo? También se pierde su acumulado histórico.')) return;
-  DB.gastosFijos = DB.gastosFijos.filter(g=>g.uuid!==uuid);
+  const g = DB.gastosFijos.find(x=>x.uuid===uuid);
+  if(!g) return;
+  g._deleted = true;
+  tocar(g);
   save(); goTo('gastos');
 }
 
@@ -1360,7 +1395,7 @@ function eliminarGastoFijo(uuid){
 // un vehículo. "Otro" se excluye a propósito: admite varios por diseño.
 function detectarGastosFijosDuplicados(vehiculoId){
   const porTipo = {};
-  DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId && g.tipo!=='Otro').forEach(g=>{
+  DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId && g.tipo!=='Otro').forEach(g=>{
     (porTipo[g.tipo] = porTipo[g.tipo] || []).push(g);
   });
   return Object.entries(porTipo)
@@ -1401,7 +1436,7 @@ function calcularConsolidacionGastoFijo(registros){
   };
 }
 function ejecutarConsolidacionGastoFijo(vehiculoId, tipo){
-  const grupo = DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId && g.tipo===tipo);
+  const grupo = DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId && g.tipo===tipo);
   if(grupo.length < 2) return null;
   const c = calcularConsolidacionGastoFijo(grupo);
   const nuevo = tocar({
@@ -1410,7 +1445,10 @@ function ejecutarConsolidacionGastoFijo(vehiculoId, tipo){
     fecha_inicio: c.fecha_inicio, fecha_ultima_actualizacion: c.fecha_ultima_actualizacion,
     acumuladoHistorico: c.acumuladoHistorico
   });
-  DB.gastosFijos = DB.gastosFijos.filter(g => !(g.vehiculoId===vehiculoId && g.tipo===tipo));
+  // Tombstone de los duplicados fusionados (no un borrado físico) — mismo
+  // motivo que en el resto de la app: un array.filter directo se podía
+  // deshacer solo con el próximo auto-sync de Drive.
+  grupo.forEach(g => { g._deleted = true; tocar(g); });
   DB.gastosFijos.push(nuevo);
   save();
   return nuevo;
@@ -1425,9 +1463,14 @@ function crearGastoVariable(datos){
   });
   DB.gastosVariables.push(g); save(); return g;
 }
+// Tombstone en vez de borrado físico (mismo motivo que las demás colecciones).
 function eliminarGastoVariable(uuid){
+  if(esMobile()){ alert('⚠️ Los gastos variables se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   if(!confirm('¿Eliminar este gasto?')) return;
-  DB.gastosVariables = DB.gastosVariables.filter(g=>g.uuid!==uuid);
+  const g = DB.gastosVariables.find(x=>x.uuid===uuid);
+  if(!g) return;
+  g._deleted = true;
+  tocar(g);
   save(); goTo('gastos');
 }
 
@@ -1492,8 +1535,26 @@ function prorratearGastoFijo(gasto, desde, hasta){
 //   rango que caen dentro de su ventana de servicio.
 // - Sin ninguna vida útil cargada: no hay con qué prorratear, se cuenta
 //   completo en el mes de instalación (comportamiento de antes).
+// - Con AMBAS vidas útiles cargadas (km y meses): se usa la misma regla que
+//   las alertas (estadoComponente) — la que esté más avanzada en su vida
+//   real (hasta hoy, o hasta el reemplazo si ya se reemplazó) es la que
+//   manda. Antes acá siempre ganaba km si estaba cargado, sin mirar cuál
+//   estaba realmente más cerca de vencer — podía quedar en desacuerdo con
+//   la alerta ("vence por tiempo" pero el costo se prorrateaba por km).
 function prorratearComponente(c, vehiculoId, desde, hasta){
-  if(c.vida_util_estimada_km > 0){
+  const tieneKm = c.vida_util_estimada_km > 0;
+  const tieneMeses = c.vida_util_meses > 0;
+
+  let usarKm = tieneKm;
+  if(tieneKm && tieneMeses){
+    const kmFinServicioReal = c.km_reemplazo != null ? c.km_reemplazo : kmActualVehiculo(vehiculoId);
+    const porcentajeKmReal = (kmFinServicioReal - c.km_instalacion) / c.vida_util_estimada_km;
+    const fechaFinServicioReal = c.fecha_reemplazo || hoyISO();
+    const porcentajeMesesReal = mesesTranscurridosDesde(c.fecha_instalacion, fechaFinServicioReal) / c.vida_util_meses;
+    usarKm = porcentajeKmReal >= porcentajeMesesReal;
+  }
+
+  if(usarKm){
     const kmFinServicio = c.km_reemplazo != null ? c.km_reemplazo : kmActualVehiculo(vehiculoId);
     const kmDesdeRango = kmAlFinDeFecha(vehiculoId, desde);
     const kmHastaRango = kmAlFinDeFecha(vehiculoId, hasta);
@@ -1502,7 +1563,7 @@ function prorratearComponente(c, vehiculoId, desde, hasta){
     const kmSolapados = Math.max(0, kmHastaSolapado - kmDesdeSolapado);
     return c.costo * (kmSolapados / c.vida_util_estimada_km);
   }
-  if(c.vida_util_meses > 0){
+  if(tieneMeses){
     const finEstimado = sumarMeses(c.fecha_instalacion, c.vida_util_meses).toISOString();
     const finServicio = c.fecha_reemplazo ? (new Date(c.fecha_reemplazo) < new Date(finEstimado) ? c.fecha_reemplazo : finEstimado) : finEstimado;
     const desdeSolapado = new Date(c.fecha_instalacion) > new Date(desde) ? c.fecha_instalacion : desde;
@@ -1527,17 +1588,17 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
 
   const totalCombustible = sumar(cargasRango.map(c=>c.totalPagado));
   const totalMantenimientos = sumar(
-    DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=fechaInicio && m.fecha<=fechaFin).map(m=>m.costo||0)
+    DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId && m.fecha>=fechaInicio && m.fecha<=fechaFin).map(m=>m.costo||0)
   );
-  const componentesDelVehiculo = DB.componentes.filter(c=>c.vehiculoId===vehiculoId);
+  const componentesDelVehiculo = DB.componentes.filter(c=>!c._deleted && c.vehiculoId===vehiculoId);
   const desgloseComponentes = componentesDelVehiculo
     .map(c => ({ tipo: c.tipo, descripcion: c.descripcion, costo: c.costo, prorrateado: (c.vida_util_estimada_km>0 || c.vida_util_meses>0), aportado: prorratearComponente(c, vehiculoId, fechaInicio, fechaFin) }))
     .filter(x => x.aportado > 0);
   const totalComponentes = sumar(desgloseComponentes.map(x=>x.aportado));
   const totalVariablesExtra = sumar(
-    DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=fechaInicio && g.fecha<=fechaFin).map(g=>g.monto)
+    DB.gastosVariables.filter(g=>!g._deleted && g.vehiculoId===vehiculoId && g.fecha>=fechaInicio && g.fecha<=fechaFin).map(g=>g.monto)
   );
-  const gastosFijosDelVehiculo = DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId);
+  const gastosFijosDelVehiculo = DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId);
   const desgloseFijos = gastosFijosDelVehiculo
     .map(g => {
       const fechaCorte = new Date(g.fecha_ultima_actualizacion || g.fecha_inicio);
@@ -1563,7 +1624,7 @@ function calcularVencimientos(vehiculoId){
   const km = kmActualVehiculo(vehiculoId);
   const items = [];
 
-  DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId).forEach(p => {
+  DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===vehiculoId).forEach(p => {
     const proximoKm = proximoKmMantenimiento(p);
     const faltan = proximoKm - km;
     if(faltan <= DB.config.umbralKmAvisoVencimiento){
@@ -1763,7 +1824,7 @@ function renderDashboard(){
       </div>` : ''}
       ${alertas.map(a => `
         <div class="alert-item ${a.tipo==='componente'?'alert-crit':'alert-warn'}">
-          <span>${a.mensaje}</span>
+          <span>${escHtml(a.mensaje)}</span>
           <button class="btn btn-sm" onclick="descartarAlerta('${a.uuid}')">Descartar</button>
         </div>`).join('')}
     </div>` : ''}
@@ -1828,7 +1889,7 @@ function renderTablaCargas(cargas){
 }
 
 function renderTablaProximosMantenimientos(vehiculoId, km){
-  const progs = DB.mantenimientosProgramados.filter(p=>p.vehiculoId===vehiculoId);
+  const progs = DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===vehiculoId);
   if(!progs.length) return `<div class="empty">No hay mantenimientos programados. <a onclick="goTo('mantenimientos')" style="color:var(--primary-light);cursor:pointer">Crear uno</a></div>`;
   const filas = progs.map(p => {
     const proximoKm = proximoKmMantenimiento(p);
@@ -2113,7 +2174,7 @@ function renderMantenimientos(){
     <button class="btn btn-sm" onclick="modalMantenimientoADemanda()">+ A demanda</button>
     <button class="btn btn-p btn-sm" onclick="modalNuevoMantenimientoProgramado()">+ Programar servicio</button>
   `;
-  const progs = DB.mantenimientosProgramados.filter(p=>p.vehiculoId===v.uuid);
+  const progs = DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===v.uuid);
   const pendientes = novedadesPendientes(v.uuid);
 
   document.getElementById('content').innerHTML = `
@@ -2173,7 +2234,7 @@ function renderMantenimientos(){
   `;
 }
 function renderHistorialMantenimientos(vehiculoId){
-  const realizados = DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const realizados = DB.mantenimientosRealizados.filter(m=>!m._deleted && m.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   if(!realizados.length) return `<div class="empty">Sin registros todavía.</div>`;
   return `<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Km</th><th>Costo</th><th>Notas</th><th></th></tr></thead><tbody>
     ${realizados.map(r=>{
@@ -2421,7 +2482,7 @@ function renderComponentes(){
   const km = kmActualVehiculo(v.uuid);
   document.getElementById('pacts').innerHTML = `<button class="btn btn-p btn-sm" onclick="modalNuevoComponente()">+ Nuevo componente</button>`;
   const activos = componentesVehiculo(v.uuid, true);
-  const historicos = DB.componentes.filter(c=>c.vehiculoId===v.uuid && !c.activo).sort((a,b)=>new Date(b.fecha_reemplazo)-new Date(a.fecha_reemplazo));
+  const historicos = DB.componentes.filter(c=>!c._deleted && c.vehiculoId===v.uuid && !c.activo).sort((a,b)=>new Date(b.fecha_reemplazo)-new Date(a.fecha_reemplazo));
 
   document.getElementById('content').innerHTML = `
     <div class="card">
@@ -2440,7 +2501,7 @@ function renderComponentes(){
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
                 <div>
-                  <div style="font-weight:700">${c.tipo}${c.descripcion?' — '+escHtml(c.descripcion):''}</div>
+                  <div style="font-weight:700">${escHtml(c.tipo)}${c.descripcion?' — '+escHtml(c.descripcion):''}</div>
                   <div class="text3" style="font-size:11px">Instalado: ${fmtKm(c.km_instalacion)} · ${fmtFecha(c.fecha_instalacion)}${c.km_instalacion_estimado?' <span class="amber">⚠️ estimado</span>':' ✅'}</div>
                 </div>
                 <div style="text-align:right">
@@ -2474,7 +2535,7 @@ function renderComponentes(){
           if(c.vida_util_estimada_km) estParts.push(fmtKm(c.vida_util_estimada_km));
           if(c.vida_util_meses) estParts.push(`${c.vida_util_meses} m`);
           return `<tr>
-            <td>${c.tipo}${c.descripcion?' — '+escHtml(c.descripcion):''}</td>
+            <td>${escHtml(c.tipo)}${c.descripcion?' — '+escHtml(c.descripcion):''}</td>
             <td>${fmtKm(c.km_instalacion)}</td>
             <td>${fmtKm(c.km_reemplazo)}</td>
             <td>${realParts.join(' / ')||'—'}</td>
@@ -2493,7 +2554,7 @@ function renderComponentes(){
 // que el usuario haya escrito antes en otros componentes (así queda como
 // sugerencia la próxima vez, sin perder la posibilidad de escribir uno nuevo).
 function tiposComponenteDisponibles(){
-  const usados = DB.componentes.map(c=>c.tipo).filter(Boolean);
+  const usados = DB.componentes.filter(c=>!c._deleted).map(c=>c.tipo).filter(Boolean);
   const set = new Set([...TIPOS_COMPONENTE, ...DB.tiposComponenteCustom, ...usados]);
   return Array.from(set).sort((a,b)=>a.localeCompare(b,'es'));
 }
@@ -2548,6 +2609,7 @@ function renderChipsMarcasCustom(){
 }
 
 function modalNuevoComponente(){
+  if(esMobile()){ alert('⚠️ Los componentes se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
   const kmSugerido = kmActualVehiculo(v.uuid);
   abrirModal('🛞 Nuevo componente', `
@@ -2597,6 +2659,7 @@ function guardarNuevoComponente(){
   cerrarModal(); goTo('componentes');
 }
 function modalEditarComponente(uuid){
+  if(esMobile()){ alert('⚠️ Los componentes se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const c = DB.componentes.find(x=>x.uuid===uuid);
   if(!c) return;
   abrirModal(`✎ Editar: ${escHtml(c.tipo)}`, `
@@ -2644,6 +2707,7 @@ function guardarEdicionComponente(uuid){
   cerrarModal(); goTo('componentes');
 }
 function modalReemplazarComponente(uuid){
+  if(esMobile()){ alert('⚠️ Los componentes se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
   const anterior = DB.componentes.find(c=>c.uuid===uuid);
   const kmSugerido = kmActualVehiculo(v.uuid);
@@ -2759,7 +2823,7 @@ function actualizarCostoKm(){
         <tr><td>Mantenimientos</td><td>${fmtMoney(r.desglose.totalMantenimientos)}</td></tr>
         <tr><td>Componentes (neumáticos/batería, prorrateados)</td><td>${fmtMoney(r.desglose.totalComponentes)}</td></tr>
         ${r.desglose.desgloseComponentes.length ? r.desglose.desgloseComponentes.map(x=>`
-        <tr><td class="text3" style="font-size:11px;padding-left:22px">↳ ${x.tipo}${x.descripcion?' — '+escHtml(x.descripcion):''} (${fmtMoney(x.costo)}${x.prorrateado?'':', sin vida útil cargada, no se prorratea'})</td><td class="text3" style="font-size:11px">${fmtMoney(x.aportado)}</td></tr>
+        <tr><td class="text3" style="font-size:11px;padding-left:22px">↳ ${escHtml(x.tipo)}${x.descripcion?' — '+escHtml(x.descripcion):''} (${fmtMoney(x.costo)}${x.prorrateado?'':', sin vida útil cargada, no se prorratea'})</td><td class="text3" style="font-size:11px">${fmtMoney(x.aportado)}</td></tr>
         `).join('') : ''}
         <tr><td>Gastos variables extra</td><td>${fmtMoney(r.desglose.totalVariablesExtra)}</td></tr>
         <tr><td>Gastos fijos (prorrateados)</td><td>${fmtMoney(r.desglose.totalFijos)}</td></tr>
@@ -2773,7 +2837,7 @@ function actualizarCostoKm(){
 }
 
 function renderTablaGastosFijos(vehiculoId){
-  const gastos = DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId);
+  const gastos = DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===vehiculoId);
   if(!gastos.length) return `<div class="empty">Sin gastos fijos registrados.</div>`;
   return `<table><thead><tr><th>Tipo</th><th>Monto vigente</th><th>Periodicidad</th><th>Vigente desde</th><th>Acum. histórico</th><th></th></tr></thead><tbody>
     ${gastos.map(g=>`<tr>
@@ -2789,7 +2853,7 @@ function renderTablaGastosFijos(vehiculoId){
   </tbody></table>`;
 }
 function renderTablaGastosVariables(vehiculoId){
-  const gastos = DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const gastos = DB.gastosVariables.filter(g=>!g._deleted && g.vehiculoId===vehiculoId).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   if(!gastos.length) return `<div class="empty">Sin gastos variables registrados.</div>`;
   return `<table><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody>
     ${gastos.map(g=>`<tr>
@@ -2810,6 +2874,7 @@ function modalEditarGastoFijo(uuid){
   modalGastoFijo(uuid);
 }
 function modalGastoFijo(uuidExistente){
+  if(esMobile()){ alert('⚠️ Los gastos fijos se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const g = uuidExistente ? DB.gastosFijos.find(x=>x.uuid===uuidExistente) : null;
   abrirModal(g ? '✎ Corregir gasto fijo' : '📌 Nuevo gasto fijo', `
     <div class="fg"><label>Tipo</label><select id="f-tipo">${TIPOS_GASTO_FIJO.map(t=>`<option ${g&&g.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
@@ -2835,6 +2900,7 @@ function modalGastoFijo(uuidExistente){
 // la última actualización hasta la fecha elegida, y a partir de ahí cuenta
 // con la tarifa nueva.
 function modalActualizarTarifaGastoFijo(uuid){
+  if(esMobile()){ alert('⚠️ Los gastos fijos se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const g = DB.gastosFijos.find(x=>x.uuid===uuid);
   if(!g) return;
   abrirModal(`💲 Actualizar tarifa — ${g.tipo}`, `
@@ -2858,8 +2924,9 @@ function guardarActualizarTarifaGastoFijo(uuid){
   goTo('gastos');
 }
 function modalConsolidarGastoFijo(tipo){
+  if(esMobile()){ alert('⚠️ Los gastos fijos se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
-  const grupo = DB.gastosFijos.filter(g=>g.vehiculoId===v.uuid && g.tipo===tipo);
+  const grupo = DB.gastosFijos.filter(g=>!g._deleted && g.vehiculoId===v.uuid && g.tipo===tipo);
   if(grupo.length < 2){ return; }
   const c = calcularConsolidacionGastoFijo(grupo);
   abrirModal(`🔗 Fusionar "${tipo}"`, `
@@ -2902,7 +2969,7 @@ function guardarGastoFijo(uuidExistente){
   // creando uno nuevo, para no terminar con varios "Seguro" sueltos. Aplica
   // también al editar, por si se cambia el Tipo a uno que ya existe.
   if(tipo !== 'Otro'){
-    const yaExiste = DB.gastosFijos.some(g => g.vehiculoId===v.uuid && g.tipo===tipo && g.uuid!==uuidExistente);
+    const yaExiste = DB.gastosFijos.some(g => !g._deleted && g.vehiculoId===v.uuid && g.tipo===tipo && g.uuid!==uuidExistente);
     if(yaExiste){
       alert(`Ya tenés un gasto fijo de tipo "${tipo}" para este vehículo. Si cambió la tarifa, usá 💲 Actualizar tarifa sobre ese registro en vez de crear uno nuevo. Si fue un error de carga, usá ✎ Corregir.`);
       return;
@@ -2913,6 +2980,7 @@ function guardarGastoFijo(uuidExistente){
   cerrarModal(); goTo('gastos');
 }
 function modalNuevoGastoVariable(){
+  if(esMobile()){ alert('⚠️ Los gastos variables se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = vehiculoActivo();
   const kmSugerido = kmActualVehiculo(v.uuid);
   abrirModal('💸 Nuevo gasto variable', `
@@ -3063,6 +3131,7 @@ function renderVehiculos(){
   `;
 }
 function modalNuevoVehiculo(){
+  if(esMobile()){ alert('⚠️ Los vehículos se dan de alta/baja desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   abrirModal('🚙 Nuevo vehículo', `
     <div class="fg"><label>Matrícula</label><input type="text" id="f-nombre" placeholder="Ej: AB123CD" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg"><label>Propietario</label><input type="text" id="f-propietario" placeholder="Nombre y apellido"></div>
@@ -3094,6 +3163,7 @@ function guardarNuevoVehiculo(){
   cerrarModal(); goTo('vehiculos');
 }
 function modalEditarVehiculo(uuid){
+  if(esMobile()){ alert('⚠️ Los vehículos se editan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   const v = DB.vehiculos.find(x=>x.uuid===uuid);
   abrirModal('✎ Editar vehículo', `
     <div class="fg"><label>Matrícula</label><input type="text" id="f-nombre" value="${escHtml(v.nombre)}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
