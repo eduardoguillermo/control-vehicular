@@ -1053,10 +1053,10 @@
     </div>
 
     <h2>📱 Carga rápida (celular)</h2>
-    <p style="font-size:12px;color:#64748b;margin-bottom:6px">🖱️ Los campos <b>Marca</b>, <b>Tipo</b> y el switch de tanque lleno de este ejemplo funcionan de verdad — probalos. No guardan nada, es solo para que veas cómo se ven las opciones.</p>
-    <div class="screenshot-frame" style="display:flex;justify-content:center">
+    <p style="font-size:12px;color:#64748b;margin-bottom:6px">🖱️ Los campos <b>Marca</b>, <b>Tipo</b>, <b>Litros</b>, <b>$/Litro</b>, <b>Total pagado</b> y el switch de tanque lleno de este ejemplo funcionan de verdad — probalos. Litros/$/Litro/Total se calculan solos entre sí (igual que en la app: con 2 de los 3 completos, calcula el tercero). No guardan nada, es solo para que veas cómo se comporta el formulario.</p>
+    <div class="screenshot-frame" style="display:flex;justify-content:center;background:transparent;border:none;box-shadow:none;padding:0">
       <div style="width:100%">
-        <div class="screenshot-label" style="justify-content:center">Ejemplo con datos de muestra</div>
+        <div class="screenshot-label" style="justify-content:center;color:#475569">Ejemplo con datos de muestra</div>
         <div class="demo-phone">
           <div class="demo-phone-notch"></div>
           <div class="demo-vr-top">
@@ -1076,10 +1076,10 @@
               </select></div>
             </div>
             <div class="demo-vr-row">
-              <div class="demo-vr-fg"><label>Litros</label><div class="demo-vr-input">32,4</div></div>
-              <div class="demo-vr-fg"><label>$ / Litro</label><div class="demo-vr-input">$2.000</div></div>
+              <div class="demo-vr-fg"><label>Litros</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-litros" value="32.4" oninput="demoRecalcularCarga('litros')" style="width:100%;font-family:inherit"></div>
+              <div class="demo-vr-fg"><label>$ / Litro</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-costo" value="2000" oninput="demoRecalcularCarga('costo')" style="width:100%;font-family:inherit"></div>
             </div>
-            <div class="demo-vr-fg"><label>Total pagado</label><div class="demo-vr-input">$64.800</div></div>
+            <div class="demo-vr-fg"><label>Total pagado</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-totalpagado" value="64800" oninput="demoRecalcularCarga('total')" style="width:100%;font-family:inherit"></div>
             <div class="demo-vr-switch"><label>⛽ ¿Tanque lleno?</label><div class="demo-vr-switch-dot" onclick="this.classList.toggle('off')" title="Tocá para probar"></div></div>
             <div class="demo-vr-btn-main">Guardar carga</div>
           </div>
@@ -1100,8 +1100,10 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 95 versiones</summary>
+      <summary>Ver las 97 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v1.03</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Quitar el fondo oscuro del marco que envuelve el mockup del celular (no la pantalla del celu en sí, que sigue oscura como la app real) — queda flotando sobre el fondo de la página</span></div>
+        <div class="changelog-row"><span class="cl-ver">v1.02</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Simular en el mockup de Carga rápida el cálculo bidireccional real de litros/$/litro/total — con 2 completos calcula el tercero solo, igual que la app</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.01</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Más interactividad liviana en pantallas de muestra: "Descartar" oculta la alerta de verdad en el mockup del Dashboard, y las estaciones de Combustible son links reales a Google Maps (igual que en la app)</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.00</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Pantallas de muestra con interactividad liviana: Marca/Tipo en la carga rápida del celular ahora son selects reales (probables, sin guardar nada), el switch de tanque lleno se puede tocar, y las barras de vida útil muestran tooltip con el detalle exacto al pasar el mouse</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.99</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Fix visual: texto de las novedades en la card "Novedades pendientes" del mockup del Dashboard se veía en negro sobre fondo oscuro (sin color propio, heredaba el negro del documento) — corregido a blanco</span></div>
@@ -1212,6 +1214,29 @@
       a.classList.add('active');
     });
   });
+
+  // Simulación del cálculo bidireccional real de la app: si conocés 2 de los
+  // 3 campos (litros, $/litro, total), calcula el tercero solo — igual que
+  // recalcularCarga() en app.js. Puramente visual, no guarda nada.
+  function demoRecalcularCarga(campoEditado){
+    const elLitros = document.getElementById('demo-vr-litros');
+    const elCosto = document.getElementById('demo-vr-costo');
+    const elTotal = document.getElementById('demo-vr-totalpagado');
+    const litros = Number(elLitros.value);
+    const costo = Number(elCosto.value);
+    const total = Number(elTotal.value);
+    const tieneLitros = litros > 0;
+    const tieneCosto = costo > 0;
+    const tieneTotal = total > 0;
+
+    if(campoEditado !== 'total' && tieneLitros && tieneCosto){
+      elTotal.value = (litros*costo).toFixed(2);
+    } else if(campoEditado !== 'costo' && tieneLitros && tieneTotal){
+      elCosto.value = (total/litros).toFixed(2);
+    } else if(campoEditado !== 'litros' && tieneCosto && tieneTotal){
+      elLitros.value = (total/costo).toFixed(2);
+    }
+  }
 </script>
 </body>
 </html>
