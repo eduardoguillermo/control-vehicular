@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v0.85';
+const VERSION = 'v0.86';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -539,7 +539,7 @@ function kmAlFinDeFecha(vehiculoId, fechaISO){
 function gastoTotalDelPeriodo(vehiculoId, desde, hasta){
   const totalCombustible = sumar(DB.cargas.filter(c=>!c._deleted && c.vehiculoId===vehiculoId && c.fecha>=desde && c.fecha<=hasta).map(c=>c.totalPagado));
   const totalMantenimientos = sumar(DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=desde && m.fecha<=hasta).map(m=>m.costo||0));
-  const totalComponentes = sumar(DB.componentes.filter(c=>c.vehiculoId===vehiculoId && c.fecha_instalacion>=desde && c.fecha_instalacion<=hasta).map(c=>c.costo||0));
+  const totalComponentes = sumar(DB.componentes.filter(c=>c.vehiculoId===vehiculoId).map(c=>prorratearComponente(c, vehiculoId, desde, hasta)));
   const totalVariablesExtra = sumar(DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=desde && g.fecha<=hasta).map(g=>g.monto));
   const totalFijos = sumar(DB.gastosFijos.filter(g=>g.vehiculoId===vehiculoId).map(g=>prorratearGastoFijo(g, desde, hasta)));
   return totalCombustible + totalMantenimientos + totalComponentes + totalVariablesExtra + totalFijos;
@@ -1474,6 +1474,45 @@ function prorratearGastoFijo(gasto, desde, hasta){
   return total;
 }
 
+// Prorratea el costo de un componente (neumáticos, batería) según su vida
+// útil, en vez de contarlo todo de golpe en el mes de instalación — así una
+// inversión grande no genera un pico en el costo/km, sino que se reparte a
+// lo largo de lo que realmente se usó (o se estima usar) el componente,
+// sin importar cuándo se hizo el desembolso.
+//
+// - Con vida útil en KM (típico de neumáticos): se prorratea por km
+//   REALMENTE recorridos dentro del rango consultado — usa los km del
+//   vehículo en las fechas límite, no el calendario, porque el desgaste de
+//   un neumático es por uso. Ventana de servicio: desde su km de
+//   instalación hasta su km de reemplazo (o el km actual, si sigue activo).
+// - Con vida útil solo en MESES (típico de batería): se prorratea por
+//   tiempo, igual que un gasto fijo — costo ÷ vida_util_meses × meses del
+//   rango que caen dentro de su ventana de servicio.
+// - Sin ninguna vida útil cargada: no hay con qué prorratear, se cuenta
+//   completo en el mes de instalación (comportamiento de antes).
+function prorratearComponente(c, vehiculoId, desde, hasta){
+  if(c.vida_util_estimada_km > 0){
+    const kmFinServicio = c.km_reemplazo != null ? c.km_reemplazo : kmActualVehiculo(vehiculoId);
+    const kmDesdeRango = kmAlFinDeFecha(vehiculoId, desde);
+    const kmHastaRango = kmAlFinDeFecha(vehiculoId, hasta);
+    const kmDesdeSolapado = Math.max(c.km_instalacion, kmDesdeRango);
+    const kmHastaSolapado = Math.min(kmFinServicio, kmHastaRango);
+    const kmSolapados = Math.max(0, kmHastaSolapado - kmDesdeSolapado);
+    return c.costo * (kmSolapados / c.vida_util_estimada_km);
+  }
+  if(c.vida_util_meses > 0){
+    const finEstimado = sumarMeses(c.fecha_instalacion, c.vida_util_meses).toISOString();
+    const finServicio = c.fecha_reemplazo ? (new Date(c.fecha_reemplazo) < new Date(finEstimado) ? c.fecha_reemplazo : finEstimado) : finEstimado;
+    const desdeSolapado = new Date(c.fecha_instalacion) > new Date(desde) ? c.fecha_instalacion : desde;
+    const hastaSolapado = new Date(finServicio) < new Date(hasta) ? finServicio : hasta;
+    if(new Date(desdeSolapado) > new Date(hastaSolapado)) return 0;
+    const mesesSolapados = mesesEntre(desdeSolapado, hastaSolapado);
+    return c.costo * Math.min(1, mesesSolapados / c.vida_util_meses);
+  }
+  if(new Date(c.fecha_instalacion) >= new Date(desde) && new Date(c.fecha_instalacion) <= new Date(hasta)) return c.costo;
+  return 0;
+}
+
 // KPI: costo por km (incluye combustible, mantenimientos, componentes reemplazados,
 // gastos variables extra, y gastos fijos prorrateados)
 function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
@@ -1488,9 +1527,11 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
   const totalMantenimientos = sumar(
     DB.mantenimientosRealizados.filter(m=>m.vehiculoId===vehiculoId && m.fecha>=fechaInicio && m.fecha<=fechaFin).map(m=>m.costo||0)
   );
-  const totalComponentes = sumar(
-    DB.componentes.filter(c=>c.vehiculoId===vehiculoId && c.fecha_instalacion>=fechaInicio && c.fecha_instalacion<=fechaFin).map(c=>c.costo||0)
-  );
+  const componentesDelVehiculo = DB.componentes.filter(c=>c.vehiculoId===vehiculoId);
+  const desgloseComponentes = componentesDelVehiculo
+    .map(c => ({ tipo: c.tipo, descripcion: c.descripcion, costo: c.costo, prorrateado: (c.vida_util_estimada_km>0 || c.vida_util_meses>0), aportado: prorratearComponente(c, vehiculoId, fechaInicio, fechaFin) }))
+    .filter(x => x.aportado > 0);
+  const totalComponentes = sumar(desgloseComponentes.map(x=>x.aportado));
   const totalVariablesExtra = sumar(
     DB.gastosVariables.filter(g=>g.vehiculoId===vehiculoId && g.fecha>=fechaInicio && g.fecha<=fechaFin).map(g=>g.monto)
   );
@@ -1511,7 +1552,7 @@ function calcularCostoPorKm(vehiculoId, fechaInicio, fechaFin){
     kmRecorridos, kmInicio, kmFin,
     costoPorKmTotal: gastoTotal / kmRecorridos,
     costoPorKmVariable: totalVariable / kmRecorridos,
-    desglose: { totalCombustible, totalMantenimientos, totalComponentes, totalVariablesExtra, totalFijos, gastoTotal, desgloseFijos }
+    desglose: { totalCombustible, totalMantenimientos, totalComponentes, desgloseComponentes, totalVariablesExtra, totalFijos, gastoTotal, desgloseFijos }
   };
 }
 
@@ -2714,7 +2755,10 @@ function actualizarCostoKm(){
       <table><tbody>
         <tr><td>Combustible</td><td>${fmtMoney(r.desglose.totalCombustible)}</td></tr>
         <tr><td>Mantenimientos</td><td>${fmtMoney(r.desglose.totalMantenimientos)}</td></tr>
-        <tr><td>Componentes (neumáticos/batería)</td><td>${fmtMoney(r.desglose.totalComponentes)}</td></tr>
+        <tr><td>Componentes (neumáticos/batería, prorrateados)</td><td>${fmtMoney(r.desglose.totalComponentes)}</td></tr>
+        ${r.desglose.desgloseComponentes.length ? r.desglose.desgloseComponentes.map(x=>`
+        <tr><td class="text3" style="font-size:11px;padding-left:22px">↳ ${x.tipo}${x.descripcion?' — '+escHtml(x.descripcion):''} (${fmtMoney(x.costo)}${x.prorrateado?'':', sin vida útil cargada, no se prorratea'})</td><td class="text3" style="font-size:11px">${fmtMoney(x.aportado)}</td></tr>
+        `).join('') : ''}
         <tr><td>Gastos variables extra</td><td>${fmtMoney(r.desglose.totalVariablesExtra)}</td></tr>
         <tr><td>Gastos fijos (prorrateados)</td><td>${fmtMoney(r.desglose.totalFijos)}</td></tr>
         ${r.desglose.desgloseFijos.length ? r.desglose.desgloseFijos.map(x=>`

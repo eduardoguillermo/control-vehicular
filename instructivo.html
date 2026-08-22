@@ -511,6 +511,16 @@
       <li>Al llegar al 90% de cualquiera de los dos criterios, salta una alerta al cargar combustible. Para lo que vence por tiempo, el mensaje dice <b>"faltan X semanas"</b> (o "vencido hace X semanas"), igual que los mantenimientos dicen "faltan X km".</li>
       <li>Cuando lo reemplazás, queda en el historial con la vida útil real que tuvo (en km y/o en meses, según corresponda), comparada contra la estimada, y el costo por km de ese componente en particular.</li>
     </ul>
+    <h2>💲 Cómo se prorratea el costo (en Costo por km)</h2>
+    <p>El costo de un componente <b>no</b> se cuenta todo de golpe en el mes que lo instalaste — se reparte a lo largo de su vida útil, para que una inversión grande (ej. un juego de neumáticos) no genere un pico artificial en el costo por km de ese mes en particular. El criterio depende de qué vida útil le cargaste:</p>
+    <table>
+      <tr><th>Vida útil cargada</th><th>Cómo se prorratea</th></tr>
+      <tr><td><b>Por km</b> (ej. neumáticos)</td><td>costo × (km realmente recorridos dentro del rango consultado ÷ vida útil en km) — usa los km reales del vehículo en esas fechas, no el calendario, porque el desgaste es por uso</td></tr>
+      <tr><td><b>Por tiempo</b> (ej. batería)</td><td>costo × (meses del rango dentro de su ventana de servicio ÷ vida útil en meses) — igual criterio que los gastos fijos</td></tr>
+      <tr><td><b>Ninguna cargada</b></td><td>No hay con qué prorratear: se cuenta completo en el mes de instalación (como antes)</td></tr>
+    </table>
+    <p>La "ventana de servicio" de un componente va desde su instalación hasta que se reemplaza (🔄 Reemplazar) o, si sigue activo, hasta hoy. Si lo reemplazás antes o después de lo estimado, el prorrateo usa la vida real, no la estimada.</p>
+    <div class="note">Esto solo afecta el <b>costo por km</b> (Reportes y Gastos) — no cambia nada de la vida útil, el % de desgaste, ni las alertas de reemplazo, que siguen funcionando exactamente igual.</div>
     <h2>✎ Editar vs. 🔄 Reemplazar</h2>
     <p>Son dos acciones distintas, no confundir:</p>
     <table>
@@ -691,8 +701,9 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 79 versiones</summary>
+      <summary>Ver las 80 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v0.86</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Componentes (neumáticos/batería): el costo se prorratea según su vida útil real (por km recorridos o por tiempo) en vez de contarse todo de golpe en el mes de instalación — costo/km más atenuado y real</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.85</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Herramienta para fusionar gastos fijos duplicados del mismo tipo (de antes de "Actualizar tarifa") — reconstruye qué tarifa regía en cada período y muestra el detalle antes de confirmar, sin perder el acumulado real</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.84</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Un solo gasto fijo por tipo y vehículo (salvo "Otro") — avisa si se intenta duplicar en vez de crear otro registro</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.83</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Gastos fijos: "💲 Actualizar tarifa" para ajustes de precio (inflación) sin crear un registro nuevo por mes — congela lo aportado por la tarifa vieja en un acumulado histórico y sigue con la nueva desde la fecha del cambio</span></div>
