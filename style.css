@@ -2,9 +2,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --primary:#00838f;--primary-dark:#005662;--primary-light:#26c6da;
+  --primary:#7c5cff;--primary-dark:#5b3fd6;--primary-light:#b8a4ff;
   --bg:#0d1117;--surface:#161b22;--surface2:#21262d;
-  --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#8b949e;
   --green:#3fb950;--red:#f85149;--amber:#d29922;--blue:#58a6ff;--teal:#39d353;
   --r:6px;
 }
