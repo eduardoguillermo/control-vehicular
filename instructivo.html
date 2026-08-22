@@ -244,6 +244,35 @@
   .cl-ver { font-family: 'Courier New', monospace; font-weight: 700; color: var(--primary); flex-shrink: 0; width: 52px; }
   .cl-date { font-size: 11px; color: var(--muted); font-family: 'Courier New', monospace; flex-shrink: 0; width: 78px; }
   .cl-desc { color: #4b5563; }
+
+  /* Recuadro de captura de pantalla ilustrativa (paleta real de la app, oscura) */
+  .screenshot-frame {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px 14px 12px;
+    margin: 14px 0;
+  }
+  .screenshot-label {
+    font-size: 10px;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 10px;
+  }
+  .barchart-legend{display:flex;gap:14px;margin-bottom:12px;font-size:11px;color:#8b949e;flex-wrap:wrap}
+  .barchart-legend-item{display:flex;align-items:center;gap:5px}
+  .barchart-legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+  .barchart-combo{display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 2px 0;border-bottom:1px solid #30363d;overflow-x:auto}
+  .barchart-combo-col{flex:1;min-width:40px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .barchart-combo-bars{display:flex;align-items:flex-end;gap:3px;height:100%;width:100%;justify-content:center}
+  .barchart-combo-bar{width:38%;border-radius:3px 3px 0 0;min-height:2px}
+  .barchart-combo-bar-km{background:#3b82f6}
+  .barchart-combo-bar-gasto{background:#7c5cff}
+  .barchart-combo-bar-km.en-curso{background:repeating-linear-gradient(45deg,#3b82f6,#3b82f6 3px,#1e3a5f 3px,#1e3a5f 6px)}
+  .barchart-combo-bar-gasto.en-curso{background:repeating-linear-gradient(45deg,#7c5cff,#7c5cff 3px,#5b3fd6 3px,#5b3fd6 6px)}
+  .barchart-combo-label{font-size:9px;color:#7d8590;margin-top:6px;white-space:nowrap}
+  .barchart-combo-label.en-curso{color:#e6edf3;font-weight:700}
 </style>
 </head>
 <body>
@@ -591,9 +620,44 @@
     <p>Un gráfico de barras combinado del vehículo activo, con dos barras por mes:</p>
     <ul>
       <li><b>Km recorridos</b> (azul) — la diferencia entre el km del odómetro al final de cada mes y al final del mes anterior. No hace falta haber cargado combustible ese mes exacto; usa el último km conocido en cada punto en el tiempo (de cargas o mantenimientos).</li>
-      <li><b>Gasto total</b> (verde) — combustible + mantenimientos + componentes + gastos variables + gastos fijos prorrateados, con el mismo criterio que el costo por km de la sección Gastos, pero desglosado mes a mes en vez de en un solo número.</li>
+      <li><b>Gasto total</b> (violeta) — combustible + mantenimientos + componentes + gastos variables + gastos fijos prorrateados, con el mismo criterio que el costo por km de la sección Gastos, pero desglosado mes a mes en vez de en un solo número.</li>
     </ul>
-    <p>Cada serie se escala a su propio máximo (no comparten eje), así que la altura de una barra se compara contra las demás barras de su mismo color, no entre azul y verde.</p>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">↳ así se ve (ejemplo con datos de muestra)</div>
+      <div class="barchart-legend">
+        <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#3b82f6"></span>Km recorridos</span>
+        <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#7c5cff"></span>Gasto total</span>
+        <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:repeating-linear-gradient(45deg,#8b949e,#8b949e 3px,#30363d 3px,#30363d 6px)"></span>Mes en curso</span>
+      </div>
+      <div class="barchart-combo">
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km" style="height:62%" title="1.240 km"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:48%" title="$185.000"></div>
+        </div><div class="barchart-combo-label">mar</div></div>
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km" style="height:78%" title="1.560 km"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:55%" title="$210.000"></div>
+        </div><div class="barchart-combo-label">abr</div></div>
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km" style="height:70%" title="1.400 km"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:100%" title="$380.000"></div>
+        </div><div class="barchart-combo-label">may</div></div>
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km" style="height:85%" title="1.700 km"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:50%" title="$195.000"></div>
+        </div><div class="barchart-combo-label">jun</div></div>
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km" style="height:100%" title="2.010 km"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:62%" title="$230.000"></div>
+        </div><div class="barchart-combo-label">jul</div></div>
+        <div class="barchart-combo-col"><div class="barchart-combo-bars">
+          <div class="barchart-combo-bar barchart-combo-bar-km en-curso" style="height:35%" title="700 km (parcial)"></div>
+          <div class="barchart-combo-bar barchart-combo-bar-gasto en-curso" style="height:30%" title="$112.000 (parcial)"></div>
+        </div><div class="barchart-combo-label en-curso">ago ●</div></div>
+      </div>
+      <p style="font-size:10px;color:#6e7681;margin-top:8px">El pico de gasto en mayo con km normal es justo el caso que este gráfico ayuda a detectar: algo puntual (service, neumáticos), no más uso del auto.</p>
+    </div>
+    <p>Cada serie se escala a su propio máximo (no comparten eje), así que la altura de una barra se compara contra las demás barras de su mismo color, no entre azul y violeta.</p>
     <div class="note">El <b>mes en curso</b> se distingue con un patrón rayado — es un dato parcial que se va a seguir agrandando a medida que cargues combustible y gastos durante el mes.</div>
     <div class="info">Sirve para ver de un vistazo si un mes con más gasto se explica por más uso (más km) o por algo puntual (un service grande, un cambio de neumáticos) que no tiene que ver con cuánto manejaste.</div>
 
@@ -696,6 +760,22 @@
     <div class="warning">Desde el <b>celular</b> el merge es más restringido a propósito: solo aporta y recibe las <b>cargas de combustible</b> y las <b>novedades nuevas</b> (crearlas, no resolverlas/editarlas). Vehículos, mantenimientos, componentes y gastos los maneja siempre la PC — el celular nunca los toca, ni para bien ni para mal, aunque su copia local esté desactualizada.</div>
   </div>
 
+  <div class="section" id="salir">
+    <div class="section-header">
+      <div class="section-icon">🚪</div>
+      <div>
+        <div class="section-title">Salir</div>
+        <div class="section-subtitle">Distinto en celular y en PC</div>
+      </div>
+    </div>
+    <table>
+      <tr><th>Dispositivo</th><th>Qué hace "Salir"</th></tr>
+      <tr><td>📱 Celular</td><td>Snapshot local + sube solo las cargas de combustible a Drive (mergeadas), y confirma con un botón "Listo". La app sigue abierta.</td></tr>
+      <tr><td>💻 PC</td><td>Snapshot local + backup completo a Drive (mergeado), y termina con un botón "Cerrar app" que intenta cerrar la pestaña.</td></tr>
+    </table>
+    <div class="note">Los navegadores bloquean el cierre automático de pestañas que no fueron abiertas por script — es una limitación de seguridad del navegador, no de la app. Si no se cierra sola, el mensaje final te confirma que ya podés cerrarla vos.</div>
+  </div>
+
   <div class="section" id="changelog">
     <div class="section-header">
       <div class="section-icon">📋</div>
@@ -705,8 +785,10 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 85 versiones</summary>
+      <summary>Ver las 87 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v0.93</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Reordenar el instructivo: "Historial de cambios" pasa a ser la última sección, después de "Salir"</span></div>
+        <div class="changelog-row"><span class="cl-ver">v0.92</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Gráfico de muestra ilustrativo en Reportes (con datos de ejemplo) para ver cómo se ve "Km y gasto por mes" antes de tener datos reales cargados; corregido color de "Gasto total" en el texto (era violeta, decía verde)</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.91</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Documentar en el instructivo las restricciones PC-only de Componentes/Gastos/Vehículos y el criterio unificado de vida útil en Componentes</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.90</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Auditoría completa: tombstones en 7 colecciones + cascada de vehículo/cargas (evita que el auto-sync revierta un borrado), avisos PC-only en Componentes/Gastos/Vehículos, texto de usuario escapado en 4 puntos, y criterio de vida útil consistente entre alertas y costo de componentes</span></div>
         <div class="changelog-row"><span class="cl-ver">v0.89</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Mostrar litros (además del monto) en los KPIs "Combustible este mes" y "Combustible acumulado (año)" del Dashboard</span></div>
@@ -796,21 +878,6 @@
     </details>
   </div>
 
-  <div class="section" id="salir">
-    <div class="section-header">
-      <div class="section-icon">🚪</div>
-      <div>
-        <div class="section-title">Salir</div>
-        <div class="section-subtitle">Distinto en celular y en PC</div>
-      </div>
-    </div>
-    <table>
-      <tr><th>Dispositivo</th><th>Qué hace "Salir"</th></tr>
-      <tr><td>📱 Celular</td><td>Snapshot local + sube solo las cargas de combustible a Drive (mergeadas), y confirma con un botón "Listo". La app sigue abierta.</td></tr>
-      <tr><td>💻 PC</td><td>Snapshot local + backup completo a Drive (mergeado), y termina con un botón "Cerrar app" que intenta cerrar la pestaña.</td></tr>
-    </table>
-    <div class="note">Los navegadores bloquean el cierre automático de pestañas que no fueron abiertas por script — es una limitación de seguridad del navegador, no de la app. Si no se cierra sola, el mensaje final te confirma que ya podés cerrarla vos.</div>
-  </div>
 
 </div>
 </div>
