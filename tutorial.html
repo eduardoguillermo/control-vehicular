@@ -148,6 +148,9 @@
   .accion-tab{padding:4px 11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:10.5px;cursor:pointer}
   .accion-tab:hover{color:var(--text)}
   .accion-tab.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .accion-tab.visto:not(.on){background:rgba(63,185,80,.13);color:var(--green);border-color:rgba(63,185,80,.35)}
+  .accion-tab.on.visto{background:rgba(63,185,80,.18);color:var(--green);border:2px solid var(--primary)}
+  .accion-tab.visto::before{content:'✓ '}
   .confirm-box{text-align:center;padding:6px}
 
   .senal-toca{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:6px;animation:rebote 1s ease-in-out infinite}
@@ -1769,13 +1772,18 @@ function normalizarModulo(mod){
   return mod;
 }
 
-function renderTabs(mod, accKey){
+const accionesVistas = new Set();
+
+function renderTabs(mod, modKey, accKey){
   const tabsWrap = document.createElement('div');
   if(mod.acciones.length <= 1) return tabsWrap; // no hace falta mostrar pestañas de una sola acción
   tabsWrap.className = 'accion-tabs';
-  tabsWrap.innerHTML = mod.acciones.map(a =>
-    `<button class="accion-tab ${a.key===accKey?'on':''}" data-acc="${a.key}">${a.label}</button>`
-  ).join('');
+  tabsWrap.innerHTML = mod.acciones.map(a => {
+    const clases = ['accion-tab'];
+    if(a.key === accKey) clases.push('on');
+    if(accionesVistas.has(modKey + ':' + a.key)) clases.push('visto');
+    return `<button class="${clases.join(' ')}" data-acc="${a.key}">${a.label}</button>`;
+  }).join('');
   return tabsWrap;
 }
 
@@ -1784,7 +1792,7 @@ async function cargarAccion(modKey, accKey){
   const acc = mod.acciones.find(a => a.key === accKey);
   accionActual = accKey;
   stage.innerHTML = '';
-  const tabs = renderTabs(mod, accKey);
+  const tabs = renderTabs(mod, modKey, accKey);
   stage.appendChild(tabs);
   tabs.querySelectorAll('.accion-tab').forEach(btn => {
     btn.addEventListener('click', () => cargarAccion(modKey, btn.dataset.acc));
@@ -1795,6 +1803,11 @@ async function cargarAccion(modKey, accKey){
   moduloTag.textContent = mod.acciones.length > 1 ? `${mod.tag} · ${acc.label}` : mod.tag;
   appPtitle.textContent = mod.tag;
   await acc.play();
+  // Recién al terminar la animación se marca como "vista" — sin recargar el
+  // contenido, solo actualizando la clase de la pestaña correspondiente.
+  accionesVistas.add(modKey + ':' + accKey);
+  const tabBtn = tabs.querySelector(`.accion-tab[data-acc="${accKey}"]`);
+  if(tabBtn) tabBtn.classList.add('visto');
 }
 
 async function cargarModulo(key){
