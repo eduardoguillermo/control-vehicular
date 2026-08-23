@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tutorial animado — Control Vehicular</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --primary:#7c5cff;--primary-dark:#5b3fd6;
+    --bg:#0d1117;--surface:#161b22;--surface2:#21262d;
+    --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#7d8590;
+    --green:#3fb950;--amber:#d29922;--red:#f85149;--r:6px;
+  }
+  body{font-family:system-ui,-apple-system,sans-serif;background:#eef2f6;color:#0f172a;line-height:1.5;padding:28px 16px 60px}
+  .wrap{max-width:940px;margin:0 auto}
+  h1{font-size:19px;margin-bottom:4px}
+  .sub{color:#64748b;font-size:13px;margin-bottom:18px}
+
+  .caption-bar{background:#fff;border:1px solid #dbe2ea;border-bottom:none;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .caption-bar .left{display:flex;align-items:center;gap:10px;min-width:0}
+  .caption-bar .modulo-tag{font-size:10px;font-weight:700;color:#fff;background:var(--primary);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+  .caption-bar .txt{font-size:13px;color:#1e293b;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .caption-bar .right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .caption-bar .cnt{font-size:11px;color:#94a3b8;white-space:nowrap}
+  .btn-replay{padding:5px 12px;border-radius:6px;background:#1e293b;color:#fff;font-size:11px;border:none;cursor:pointer}
+  .btn-replay:hover{background:#334155}
+
+  .browser{border:1px solid #dbe2ea;border-radius:0 0 12px 12px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,42,.12)}
+  .browser-chrome{background:#e2e8f0;padding:9px 12px;display:flex;align-items:center;gap:10px}
+  .dots{display:flex;gap:6px;flex-shrink:0}
+  .dots span{width:10px;height:10px;border-radius:50%;display:block}
+  .dot-r{background:#ff5f57}.dot-y{background:#febc2e}.dot-g{background:#28c840}
+
+  .appwrap{display:flex;height:460px;background:var(--bg);position:relative}
+  .sidebar.disabled{pointer-events:none;opacity:.45}
+  .sidebar{width:150px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto}
+  .sidebar-logo{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .sidebar-logo-icon{width:24px;height:24px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+  .sidebar-logo-text{font-weight:700;font-size:11px;color:var(--text)}
+  .sidebar a{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:6px 14px;font-size:11.5px;color:var(--text2);cursor:pointer;text-decoration:none}
+  .sidebar a:hover{background:var(--surface2);color:var(--text)}
+  .sidebar a.on{background:rgba(124,92,255,.15);color:#b8a4ff;font-weight:600}
+  .sidebar a .dot-listo{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+  .app-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .app-topbar .ptitle{font-weight:700;font-size:13px;color:var(--text)}
+  .app-topbar .vsel{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px}
+  .stage{flex:1;padding:16px 18px;overflow:hidden;position:relative}
+
+  .topbar{display:flex;justify-content:flex-end;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .btn{padding:6px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface2);color:var(--text);font-size:11px;cursor:default}
+  .btn-p{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btn-amber{border-color:var(--amber);color:var(--amber)}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px}
+  .ch{padding:9px 13px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text)}
+  .card-body{padding:0}
+  table{width:100%;border-collapse:collapse;font-size:11px;color:var(--text)}
+  th{background:var(--surface2);padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .fila-nueva,.card-nueva{opacity:0;transition:opacity .4s ease,transform .4s ease}
+  .fila-nueva.show,.card-nueva.show{opacity:1}
+  .card-nueva{transform:translateY(8px)}
+  .card-nueva.show{transform:translateY(0)}
+
+  .demo-stats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .demo-stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;min-width:80px;text-align:center}
+  .demo-stat-n{font-size:15px;font-weight:700;color:var(--text)}
+  .demo-stat-l{font-size:8.5px;color:var(--text2);text-transform:uppercase}
+
+  .proy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+  .proy-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;position:relative}
+  .proy-card-num{font-size:9px;color:var(--text3);font-family:monospace;margin-bottom:4px}
+  .proy-card-title{font-weight:700;font-size:12px;margin-bottom:4px;color:var(--text)}
+  .proy-card-obj{font-size:10px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+  .proy-card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .proy-card-cat{font-size:9px;color:var(--text3)}
+
+  .moverlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:background .25s ease,opacity .25s ease}
+  .moverlay.show{background:rgba(0,0,0,.7);opacity:1;pointer-events:auto}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:340px;transform:scale(.92);transition:transform .25s ease}
+  .modal.ancho{max-width:430px}
+  .moverlay.show .modal{transform:scale(1)}
+  .mhead{padding:11px 15px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text)}
+  .mbody{padding:13px 15px}
+  .mfoot{padding:9px 15px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+  .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+  .fg label{font-size:9px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .fg .val{padding:6px 9px;border:1px solid var(--border);border-radius:var(--r);font-size:11px;background:var(--surface2);color:var(--text);min-height:15px}
+  .fg .val.area{min-height:38px}
+  .fg .val.selected{border-color:var(--primary)}
+  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+  .caret{display:inline-block;width:1px;height:11px;background:var(--primary);vertical-align:middle;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .cursor{position:absolute;width:18px;height:18px;pointer-events:none;z-index:50;transition:left .55s cubic-bezier(.4,0,.2,1),top .55s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+  .cursor svg{width:100%;height:100%}
+  .click-ripple{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--primary);opacity:0;pointer-events:none;z-index:49}
+  .click-ripple.go{animation:ripple .5s ease-out}
+  @keyframes ripple{0%{opacity:.9;transform:scale(0)}100%{opacity:0;transform:scale(3.2)}}
+
+  .placeholder{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:8px;color:var(--text3);font-size:12px;text-align:center;padding:20px}
+
+  .accion-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .accion-tab{padding:4px 11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:10.5px;cursor:pointer}
+  .accion-tab:hover{color:var(--text)}
+  .accion-tab.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .confirm-box{text-align:center;padding:6px}
+  .confirm-box p{font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎬 Tutorial animado — Control Vehicular</h1>
+  <div class="sub">Arranca en el Dashboard, igual que la app real. Elegí una sección del menú de la izquierda para ver cómo se hace cada acción.</div>
+
+  <div class="caption-bar">
+    <div class="left"><span class="modulo-tag" id="modulo-tag">Dashboard</span><span class="txt" id="caption-text">Así se ve el Dashboard al abrir la app</span></div>
+    <div class="right"><span class="cnt" id="step-counter"></span><button class="btn-replay" id="btn-replay">↻ Repetir</button></div>
+  </div>
+
+  <div class="browser">
+    <div class="browser-chrome"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div></div>
+    <div class="appwrap">
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-logo"><div class="sidebar-logo-icon">🚗</div><div class="sidebar-logo-text">Control Vehicular</div></div>
+        <a data-nav="dashboard" class="on">📊 Dashboard</a>
+        <a data-nav="combustible">⛽ Combustible<span class="dot-listo"></span></a>
+        <a data-nav="mantenimientos">🔧️ Mantenimientos<span class="dot-listo"></span></a>
+        <a data-nav="componentes">🛞 Componentes<span class="dot-listo"></span></a>
+        <a data-nav="gastos">💰 Gastos<span class="dot-listo"></span></a>
+        <a data-nav="reportes">📈 Reportes<span class="dot-listo"></span></a>
+        <a data-nav="vehiculos">🚙 Vehículos<span class="dot-listo"></span></a>
+        <a data-nav="ajustes">⚙️ Ajustes<span class="dot-listo"></span></a>
+        <a data-nav="backup">💾 Backup<span class="dot-listo"></span></a>
+      </div>
+      <div class="main">
+        <div class="app-topbar">
+          <div class="ptitle" id="app-ptitle">Dashboard</div>
+          <div class="vsel">🚗 AB123CD — Juan Pérez</div>
+        </div>
+        <div class="stage" id="stage"></div>
+      </div>
+      <div class="moverlay show" id="modal-vencimientos-inicial" style="position:absolute;z-index:100">
+        <div class="modal ancho">
+          <div class="mhead">⚠️ Próximos vencimientos</div>
+          <div class="mbody">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:10px;background:rgba(210,153,34,.08);border:1px dashed rgba(210,153,34,.35)">
+              <div style="font-size:12px;color:#e6edf3">⚠️ Tenés <b>2</b> novedades pendientes — aprovechá este service para pedirle al taller que las revise.</div>
+              <button class="btn" style="font-size:10px;padding:4px 10px">📋 Ver lista</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:rgba(248,81,73,.1);border-left:3px solid #f85149">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;color:#e6edf3">Cambio de aceite</div>
+                <div style="font-size:11px;color:#8b949e">Vencido hace 150 km</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;color:#fff;background:#f85149;padding:3px 8px;border-radius:10px;white-space:nowrap">Vencido</span>
+              <button class="btn" style="font-size:10px;padding:4px 10px;background:#1a4a1a;color:#3fb950;border-color:#2d6a2d">✓ Registrar</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:0;background:rgba(210,153,34,.1);border-left:3px solid #d29922">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;color:#e6edf3">Neumáticos — Bridgestone 195/65</div>
+                <div style="font-size:11px;color:#8b949e">Vence a los 50.000 km (74%)</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;color:#fff;background:#d29922;padding:3px 8px;border-radius:10px;white-space:nowrap">Próximo</span>
+              <button class="btn" style="font-size:10px;padding:4px 10px;background:#1a4a1a;color:#3fb950;border-color:#2d6a2d">🔄 Reemplazar</button>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn btn-p" id="btn-cerrar-vencimientos-inicial" style="width:100%">Cerrar</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const VELOCIDAD = 1.25;
+function ms(base){ return Math.round(base * VELOCIDAD); }
+function sleep(t){ return new Promise(r => setTimeout(r, ms(t))); }
+
+const stage = document.getElementById('stage');
+const captionTxt = document.getElementById('caption-text');
+const stepCounter = document.getElementById('step-counter');
+const moduloTag = document.getElementById('modulo-tag');
+const appPtitle = document.getElementById('app-ptitle');
+const btnReplay = document.getElementById('btn-replay');
+
+function q(role){ return stage.querySelector(`[data-role="${role}"]`); }
+function posDeElemento(el){
+  const r = el.getBoundingClientRect();
+  const s = stage.getBoundingClientRect();
+  return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
+}
+async function moverCursorA(role, offsetX=0, offsetY=0){
+  const cursor = q('cursor');
+  const el = q(role);
+  const p = posDeElemento(el);
+  cursor.style.left = (p.x - 2 + offsetX) + 'px';
+  cursor.style.top = (p.y - 2 + offsetY) + 'px';
+  await sleep(600);
+}
+async function click(role){
+  const el = q(role);
+  const p = posDeElemento(el);
+  const ripple = document.createElement('div');
+  ripple.className = 'click-ripple';
+  ripple.style.left = (p.x - 4) + 'px';
+  ripple.style.top = (p.y - 4) + 'px';
+  stage.appendChild(ripple);
+  requestAnimationFrame(() => ripple.classList.add('go'));
+  await sleep(120);
+  setTimeout(() => ripple.remove(), ms(500));
+}
+async function escribir(role, texto, conCaret=true){
+  const el = q(role);
+  el.classList.add('selected');
+  el.innerHTML = '';
+  for(let i=1; i<=texto.length; i++){
+    el.innerHTML = texto.slice(0,i) + (conCaret ? '<span class="caret"></span>' : '');
+    await sleep(38);
+  }
+  el.innerHTML = texto;
+  await sleep(200);
+  el.classList.remove('selected');
+}
+async function seleccionar(role, texto){
+  const el = q(role);
+  el.classList.add('selected');
+  await sleep(150);
+  el.textContent = texto;
+  await sleep(250);
+  el.classList.remove('selected');
+}
+async function decirPaso(texto, n, total){
+  captionTxt.textContent = texto;
+  stepCounter.textContent = n ? `Paso ${n} de ${total}` : '';
+  await sleep(150);
+}
+function overlay(mostrar){ q('overlay').classList.toggle('show', mostrar); }
+
+const cursorSvg = `<div class="cursor" data-role="cursor"><svg viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15.5 L12.5 22 L15.5 20.5 L12 14 L19 14 Z" fill="white" stroke="#0d1117" stroke-width="1.3"/></svg></div>`;
+
+const modulos = {
+  dashboard: {
+    tag: 'Dashboard', autoplay: false,
+    html: `
+      <div class="demo-stats">
+        <div class="demo-stat"><div class="demo-stat-n">48.230</div><div class="demo-stat-l">Km actual</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">12,4</div><div class="demo-stat-l">Rendim.</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">$128k</div><div class="demo-stat-l">Combust. mes</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">$187</div><div class="demo-stat-l">Costo/km</div></div>
+      </div>
+      <div class="card">
+        <div class="ch">🔧️ Próximos mantenimientos</div>
+        <div class="card-body">
+          <table><tbody>
+            <tr><td>Cambio de aceite</td><td style="color:#d29922">1.770 km</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      ${cursorSvg}
+    `,
+    async play(){ await decirPaso('Así se ve el Dashboard al abrir la app', 0, 0); }
+  },
+
+  vehiculos: {
+    tag: 'Vehículos',
+    acciones: [
+      {
+        key: 'nuevo', label: 'Dar de alta',
+        html: `
+      <div class="topbar"><button class="btn btn-p" data-role="btn-nuevo">+ Nuevo vehículo</button></div>
+      <div class="proy-grid" data-role="grid">
+        <div class="proy-card">
+          <div class="proy-card-num">Auto</div>
+          <div class="proy-card-title">AB123CD</div>
+          <div class="proy-card-obj">👤 Juan Pérez<br>Toyota Corolla · 2021<br>Km actual: 48.230</div>
+          <div class="proy-card-footer"><span class="proy-card-cat">✅ Activo</span></div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal ancho">
+          <div class="mhead">🚙 Nuevo vehículo</div>
+          <div class="mbody">
+            <div class="fg"><label>Matrícula</label><div class="val" data-role="f-nombre"></div></div>
+            <div class="fg"><label>Propietario</label><div class="val" data-role="f-propietario"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Tipo</label><div class="val" data-role="f-tipo"></div></div>
+              <div class="fg"><label>Año</label><div class="val" data-role="f-anio"></div></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>Marca</label><div class="val" data-role="f-marca"></div></div>
+              <div class="fg"><label>Modelo</label><div class="val" data-role="f-modelo"></div></div>
+            </div>
+            <div class="fg"><label>Kilometraje actual del odómetro</label><div class="val" data-role="f-km"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 8;
+          await decirPaso('Tocá "+ Nuevo vehículo" arriba a la derecha', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Escribís la matrícula (se pone en mayúsculas sola)', 2, total);
+          await moverCursorA('f-nombre'); await escribir('f-nombre', 'AC456EF');
+          await decirPaso('Nombre del propietario', 3, total);
+          await moverCursorA('f-propietario'); await escribir('f-propietario', 'María Gómez');
+          await decirPaso('Elegís el tipo: Auto o Moto', 4, total);
+          await moverCursorA('f-tipo'); await click('f-tipo'); await seleccionar('f-tipo', 'Auto');
+          await decirPaso('Año, marca y modelo', 5, total);
+          await moverCursorA('f-anio'); await escribir('f-anio', '2023', false);
+          await moverCursorA('f-marca'); await escribir('f-marca', 'Volkswagen');
+          await moverCursorA('f-modelo'); await escribir('f-modelo', 'Gol Trend');
+          await decirPaso('Kilometraje actual del odómetro', 6, total);
+          await moverCursorA('f-km'); await escribir('f-km', '12.500', false);
+          await decirPaso('Tocás Guardar', 7, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — el vehículo ya aparece en la lista', 8, total);
+          const grid = q('grid');
+          const card = document.createElement('div');
+          card.className = 'proy-card card-nueva';
+          card.innerHTML = `<div class="proy-card-num">Auto</div><div class="proy-card-title">AC456EF</div><div class="proy-card-obj">👤 María Gómez<br>Volkswagen Gol Trend · 2023<br>Km actual: 12.500</div><div class="proy-card-footer"><span class="proy-card-cat"></span></div>`;
+          grid.appendChild(card);
+          requestAnimationFrame(() => card.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'editar', label: 'Editar',
+        html: `
+      <div class="proy-grid" data-role="grid">
+        <div class="proy-card">
+          <div class="proy-card-num">Auto</div>
+          <div class="proy-card-title">AB123CD</div>
+          <div class="proy-card-obj" data-role="obj">👤 Juan Pérez<br>Toyota Corolla · 2021<br>Km actual: 48.230</div>
+          <div class="proy-card-footer">
+            <span class="proy-card-cat">✅ Activo</span>
+            <span><button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button></span>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal ancho">
+          <div class="mhead">✎ Editar vehículo</div>
+          <div class="mbody">
+            <div class="fg"><label>Matrícula</label><div class="val" data-role="f-nombre">AB123CD</div></div>
+            <div class="fg"><label>Propietario</label><div class="val" data-role="f-propietario">Juan Pérez</div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Tipo</label><div class="val" data-role="f-tipo">Auto</div></div>
+              <div class="fg"><label>Año</label><div class="val" data-role="f-anio">2021</div></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>Marca</label><div class="val" data-role="f-marca">Toyota</div></div>
+              <div class="fg"><label>Modelo</label><div class="val" data-role="f-modelo">Corolla</div></div>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocás ✎ en la card del vehículo', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Se abre con todos los datos ya cargados', 2, total);
+          await moverCursorA('f-propietario');
+          await decirPaso('Corregís lo que haga falta — acá el propietario', 3, total);
+          await escribir('f-propietario', 'Juan Carlos Pérez');
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          const obj = q('obj');
+          obj.innerHTML = '👤 Juan Carlos Pérez<br>Toyota Corolla · 2021<br>Km actual: 48.230';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="proy-grid" data-role="grid">
+        <div class="proy-card">
+          <div class="proy-card-num">Auto</div>
+          <div class="proy-card-title">AB123CD</div>
+          <div class="proy-card-obj">👤 Juan Pérez<br>Toyota Corolla · 2021<br>Km actual: 48.230</div>
+          <div class="proy-card-footer"><span class="proy-card-cat">✅ Activo</span></div>
+        </div>
+        <div class="proy-card" data-role="target">
+          <div class="proy-card-num">Moto</div>
+          <div class="proy-card-title">125ABC</div>
+          <div class="proy-card-obj">Honda Wave · 2019<br>Km actual: 22.100</div>
+          <div class="proy-card-footer">
+            <span class="proy-card-cat"></span>
+            <span><button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button></span>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar este vehículo y TODOS sus datos asociados (cargas, mantenimientos, componentes, gastos)?<br><b>Esta acción no se puede deshacer.</b></p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en la card del vehículo que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await decirPaso('Te avisa que se borra TODO el historial asociado', 2, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 3, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const target = q('target');
+          target.style.transition = 'opacity .4s ease';
+          target.style.opacity = '0';
+          await sleep(400);
+          target.remove();
+        }
+      }
+    ]
+  },
+
+  mantenimientos: {
+    tag: 'Mantenimientos',
+    acciones: [
+      {
+        key: 'nuevo', label: 'Programar',
+        html: `
+      <div class="topbar">
+        <button class="btn btn-amber" data-role="btn-novedad">+ Novedad</button>
+        <button class="btn" data-role="btn-demanda">+ A demanda</button>
+        <button class="btn btn-p" data-role="btn-nuevo">+ Programar servicio</button>
+      </div>
+      <div class="card">
+        <div class="ch">🔧️ Servicios programados</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Servicio</th><th>Intervalo</th><th>Último realizado</th><th>Próximo km</th><th></th></tr></thead>
+            <tbody data-role="tbody">
+              <tr>
+                <td>Rotación de neumáticos</td><td>cada 10.000 km</td><td>38.100 · 02/05/2026</td><td>48.100</td>
+                <td style="white-space:nowrap"><span style="font-size:10px;color:#7d8590">Faltan 130 km</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">🔧️ Programar servicio</div>
+          <div class="mbody">
+            <div class="fg"><label>Nombre del servicio</label><div class="val" data-role="f-nombre"></div></div>
+            <div class="fg"><label>Intervalo (cada cuántos km)</label><div class="val" data-role="f-intervalo"></div></div>
+            <div class="fg"><label>Notas</label><div class="val area" data-role="f-notas"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 6;
+          await decirPaso('Tocá "+ Programar servicio" arriba a la derecha', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Nombre del servicio', 2, total);
+          await moverCursorA('f-nombre'); await escribir('f-nombre', 'Cambio de aceite');
+          await decirPaso('Cada cuántos km se repite', 3, total);
+          await moverCursorA('f-intervalo'); await escribir('f-intervalo', '10.000', false);
+          await decirPaso('Notas, opcional', 4, total);
+          await moverCursorA('f-notas'); await escribir('f-notas', 'Usar aceite 5W30 sintético');
+          await decirPaso('Tocás Guardar', 5, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — ya aparece en Servicios programados', 6, total);
+          const tbody = q('tbody');
+          const fila = document.createElement('tr');
+          fila.className = 'fila-nueva';
+          fila.innerHTML = `<td>Cambio de aceite<div style="font-size:10px;color:#7d8590">Usar aceite 5W30 sintético</div></td><td>cada 10.000 km</td><td>—</td><td>58.100</td><td style="white-space:nowrap"><span style="font-size:10px;color:#7d8590">Faltan 10.000 km</span></td>`;
+          tbody.appendChild(fila);
+          requestAnimationFrame(() => fila.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'vencido', label: 'Registrar vencido',
+        html: `
+      <div class="card">
+        <div class="ch">🔧️ Servicios programados</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Servicio</th><th>Intervalo</th><th>Último realizado</th><th>Próximo km</th><th></th></tr></thead>
+            <tbody data-role="tbody">
+              <tr data-role="fila">
+                <td>Cambio de aceite</td><td>cada 10.000 km</td><td>38.100 · 12/03/2026</td><td style="color:#f85149">48.100 ⚠️</td>
+                <td style="white-space:nowrap"><button class="btn btn-sm" style="background:#1a4a1a;color:#3fb950;border-color:#2d6a2d" data-role="btn-registrar">✓ Registrar</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✓ Registrar: Cambio de aceite</div>
+          <div class="mbody">
+            <div class="fgrid">
+              <div class="fg"><label>Kilometraje</label><div class="val" data-role="f-km"></div></div>
+              <div class="fg"><label>Fecha de realización</label><div class="val" data-role="f-fecha"></div></div>
+            </div>
+            <div class="fg"><label>Costo</label><div class="val" data-role="f-costo"></div></div>
+            <div class="fg"><label>Notas</label><div class="val area" data-role="f-notas"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 5;
+          await decirPaso('Cuando se vence, aparece el botón "✓ Registrar" en la fila', 1, total);
+          await moverCursorA('btn-registrar'); await click('btn-registrar'); overlay(true); await sleep(400);
+          await decirPaso('Kilometraje y fecha en que lo hiciste', 2, total);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '21/08/2026', false);
+          await decirPaso('Costo del service', 3, total);
+          await moverCursorA('f-costo'); await escribir('f-costo', '$32.000', false);
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — se recalcula el próximo vencimiento solo', 5, total);
+          const fila = q('fila');
+          fila.innerHTML = `<td>Cambio de aceite</td><td>cada 10.000 km</td><td>48.230 · 21/08/2026</td><td>58.230</td><td style="white-space:nowrap"><span style="font-size:10px;color:#7d8590">Faltan 10.000 km</span></td>`;
+          await sleep(500);
+        }
+      },
+      {
+        key: 'editar', label: 'Editar',
+        html: `
+      <div class="card">
+        <div class="ch">🔧️ Servicios programados</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Servicio</th><th>Intervalo</th><th>Próximo km</th><th></th></tr></thead>
+            <tbody data-role="tbody">
+              <tr data-role="fila">
+                <td data-role="celda-nombre">Rotación de neumáticos<div style="font-size:10px;color:#7d8590" data-role="celda-notas"></div></td>
+                <td data-role="celda-intervalo">cada 10.000 km</td><td>48.100</td>
+                <td style="white-space:nowrap"><button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✎ Editar servicio</div>
+          <div class="mbody">
+            <div class="fg"><label>Nombre del servicio</label><div class="val" data-role="f-nombre">Rotación de neumáticos</div></div>
+            <div class="fg"><label>Intervalo (km)</label><div class="val" data-role="f-intervalo">10.000</div></div>
+            <div class="fg"><label>Notas</label><div class="val area" data-role="f-notas"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocás ✎ en la fila del servicio', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Se abre con los datos ya cargados', 2, total);
+          await moverCursorA('f-intervalo');
+          await decirPaso('Corregís lo que haga falta — acá el intervalo', 3, total);
+          await escribir('f-intervalo', '8.000', false);
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          q('celda-intervalo').textContent = 'cada 8.000 km';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="card">
+        <div class="ch">🔧️ Servicios programados</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Servicio</th><th>Intervalo</th><th>Próximo km</th><th></th></tr></thead>
+            <tbody data-role="tbody">
+              <tr data-role="fila">
+                <td>Alineación y balanceo</td><td>cada 15.000 km</td><td>60.000</td>
+                <td style="white-space:nowrap"><button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar este mantenimiento programado y su historial de realizaciones?</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en la fila del servicio', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await decirPaso('Te avisa que se borra también el historial de realizaciones', 2, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 3, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const fila = q('fila');
+          fila.style.transition = 'opacity .4s ease';
+          fila.style.opacity = '0';
+          await sleep(400);
+          fila.remove();
+        }
+      },
+      {
+        key: 'novedad-reportar', label: 'Reportar novedad',
+        html: `
+      <div class="topbar">
+        <button class="btn btn-amber" data-role="btn-novedad">+ Novedad</button>
+        <button class="btn" data-role="btn-demanda">+ A demanda</button>
+        <button class="btn btn-p" data-role="btn-programar">+ Programar servicio</button>
+      </div>
+      <div class="card">
+        <div class="ch">⚠️ Novedades pendientes<span style="font-size:10px;color:#8b949e;font-weight:400">(0)</span></div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <p style="font-size:11px;color:#7d8590">Sin novedades pendientes.</p>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">⚠️ Nueva novedad</div>
+          <div class="mbody">
+            <div class="fg"><label>Descripción</label><div class="val area" data-role="f-desc"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Fecha ocurrencia</label><div class="val" data-role="f-fecha"></div></div>
+              <div class="fg"><label>Km ocurrencia</label><div class="val" data-role="f-km"></div></div>
+            </div>
+            <div class="fg"><label>Gravedad</label><div class="val" data-role="f-gravedad">Media</div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 5;
+          await decirPaso('Tocás "+ Novedad" arriba a la derecha', 1, total);
+          await moverCursorA('btn-novedad'); await click('btn-novedad'); overlay(true); await sleep(400);
+          await decirPaso('Describís lo que notaste', 2, total);
+          await moverCursorA('f-desc'); await escribir('f-desc', 'Ruido metálico en tren delantero al frenar');
+          await decirPaso('Fecha y km en que lo notaste', 3, total);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '21/08/2026', false);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await decirPaso('Elegís la gravedad', 4, total);
+          await moverCursorA('f-gravedad'); await click('f-gravedad'); await seleccionar('f-gravedad', 'Alta');
+          await decirPaso('Tocás Guardar', 5, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          const lista = q('lista');
+          lista.innerHTML = `<div class="card-nueva" style="display:flex;align-items:center;gap:8px;justify-content:space-between"><span style="font-size:11px;color:#e6edf3">Ruido metálico en tren delantero al frenar</span><span class="demo-pill" style="background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25);font-size:9px;padding:2px 7px;border-radius:10px">Alta</span></div>`;
+          requestAnimationFrame(() => lista.querySelector('.card-nueva').classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'novedad-resolver', label: 'Resolver novedad',
+        html: `
+      <div class="card">
+        <div class="ch">⚠️ Novedades pendientes<span style="font-size:10px;color:#8b949e;font-weight:400">(1)</span></div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between" data-role="item">
+            <span style="font-size:11px;color:#e6edf3">Pierde un poco de aceite</span>
+            <button class="btn" style="font-size:10px;padding:3px 8px;background:#1a4a1a;color:#3fb950;border-color:#2d6a2d" data-role="btn-resolver">✓ Resolver</button>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✓ Resolver novedad</div>
+          <div class="mbody">
+            <p style="font-size:11px;color:#8b949e;margin-bottom:10px">Pierde un poco de aceite</p>
+            <div class="fgrid">
+              <div class="fg"><label>Fecha solución</label><div class="val" data-role="f-fecha"></div></div>
+              <div class="fg"><label>Km solución</label><div class="val" data-role="f-km"></div></div>
+            </div>
+            <div class="fg"><label>Costo</label><div class="val" data-role="f-costo"></div></div>
+            <div class="fg"><label>Notas</label><div class="val area" data-role="f-notas"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 5;
+          await decirPaso('Tocás "✓ Resolver" en la novedad ya arreglada', 1, total);
+          await moverCursorA('btn-resolver'); await click('btn-resolver'); overlay(true); await sleep(400);
+          await decirPaso('Fecha y km en que la solucionaste', 2, total);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '21/08/2026', false);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await decirPaso('Costo de la reparación', 3, total);
+          await moverCursorA('f-costo'); await escribir('f-costo', '$18.000', false);
+          await decirPaso('Se agrega sola al historial de mantenimientos y al $/km', 4, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Tocás Guardar', 5, total);
+          await click('btn-guardar'); overlay(false); await sleep(300);
+          const item = q('item');
+          item.style.transition = 'opacity .4s ease';
+          item.style.opacity = '0';
+          await sleep(400);
+          item.remove();
+        }
+      },
+      {
+        key: 'novedad-editar', label: 'Editar novedad',
+        html: `
+      <div class="card">
+        <div class="ch">⚠️ Novedades pendientes<span style="font-size:10px;color:#8b949e;font-weight:400">(1)</span></div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+            <span style="font-size:11px;color:#e6edf3" data-role="texto">Ruido raro</span>
+            <button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✎ Editar novedad</div>
+          <div class="mbody">
+            <div class="fg"><label>Descripción</label><div class="val area" data-role="f-desc">Ruido raro</div></div>
+            <div class="fg"><label>Gravedad</label><div class="val" data-role="f-gravedad">Media</div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocás ✎ para completar o corregir la descripción', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Corregís o ampliás la descripción', 2, total);
+          await moverCursorA('f-desc'); await escribir('f-desc', 'Ruido metálico en rueda delantera derecha al girar');
+          await decirPaso('Y la gravedad si hace falta', 3, total);
+          await moverCursorA('f-gravedad'); await click('f-gravedad'); await seleccionar('f-gravedad', 'Alta');
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          q('texto').textContent = 'Ruido metálico en rueda delantera derecha al girar';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'novedad-eliminar', label: 'Eliminar novedad',
+        html: `
+      <div class="card">
+        <div class="ch">⚠️ Novedades pendientes<span style="font-size:10px;color:#8b949e;font-weight:400">(1)</span></div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between" data-role="item">
+            <span style="font-size:11px;color:#e6edf3">Cargada por error</span>
+            <button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar esta novedad?<br>Si ya fue resuelta, también se borra el registro de mantenimiento asociado.</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en la novedad que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 2, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const item = q('item');
+          item.style.transition = 'opacity .4s ease';
+          item.style.opacity = '0';
+          await sleep(400);
+          item.remove();
+        }
+      }
+    ]
+  },
+
+  combustible: {
+    tag: 'Combustible',
+    acciones: [
+      {
+        key: 'nueva', label: 'Nueva carga',
+        html: `
+      <div class="topbar"><button class="btn btn-p" data-role="btn-nuevo">+ Nueva carga</button></div>
+      <div class="demo-stats">
+        <div class="demo-stat"><div class="demo-stat-n">12,1</div><div class="demo-stat-l">Prom. km/L (3m)</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">46</div><div class="demo-stat-l">Cargas registradas</div></div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Litros</th><th>Total</th></tr></thead>
+            <tbody data-role="tbody">
+              <tr><td>05/08/2026</td><td>47.680</td><td>Shell</td><td>29,9 L</td><td>$61.200</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">⛽ Nueva carga de combustible</div>
+          <div class="mbody">
+            <div class="fg"><label>Kilometraje actual</label><div class="val" data-role="f-km"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Marca</label><div class="val" data-role="f-marca"></div></div>
+              <div class="fg"><label>Tipo</label><div class="val" data-role="f-tipo"></div></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>Litros cargados</label><div class="val" data-role="f-litros"></div></div>
+              <div class="fg"><label>Costo por litro</label><div class="val" data-role="f-costolitro"></div></div>
+            </div>
+            <div class="fg"><label>Total pagado</label><div class="val" data-role="f-total"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 7;
+          await decirPaso('Tocá "+ Nueva carga" arriba a la derecha', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Kilometraje actual (ya viene sugerido)', 2, total);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await decirPaso('Marca y tipo de combustible', 3, total);
+          await moverCursorA('f-marca'); await click('f-marca'); await seleccionar('f-marca', 'YPF');
+          await moverCursorA('f-tipo'); await click('f-tipo'); await seleccionar('f-tipo', 'Super');
+          await decirPaso('Litros y precio por litro — el total se calcula solo', 4, total);
+          await moverCursorA('f-litros'); await escribir('f-litros', '32,4', false);
+          await moverCursorA('f-costolitro'); await escribir('f-costolitro', '$2.000', false);
+          await decirPaso('Total ya calculado automáticamente', 5, total);
+          await moverCursorA('f-total'); await escribir('f-total', '$64.800', false);
+          await decirPaso('Tocás Guardar', 6, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — ya aparece en el historial', 7, total);
+          const tbody = q('tbody');
+          const fila = document.createElement('tr');
+          fila.className = 'fila-nueva';
+          fila.innerHTML = `<td>21/08/2026</td><td>48.230</td><td>YPF</td><td>32,4 L</td><td>$64.800</td>`;
+          tbody.insertBefore(fila, tbody.firstChild);
+          requestAnimationFrame(() => fila.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'editar', label: 'Editar',
+        html: `
+      <div class="card">
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Fecha</th><th>Km</th><th>Litros</th><th>Total</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>05/08/2026</td><td>47.680</td><td data-role="celda-litros">29,9 L</td><td data-role="celda-total">$61.200</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✎ Editar carga de combustible</div>
+          <div class="mbody">
+            <div class="fgrid">
+              <div class="fg"><label>Litros cargados</label><div class="val" data-role="f-litros">29,9</div></div>
+              <div class="fg"><label>Costo por litro</label><div class="val" data-role="f-costolitro">$2.047</div></div>
+            </div>
+            <div class="fg"><label>Total pagado</label><div class="val" data-role="f-total">$61.200</div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 5;
+          await decirPaso('Tocás ✎ en la fila que querés corregir', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Se abre con los datos ya cargados', 2, total);
+          await moverCursorA('f-litros');
+          await decirPaso('Corregís el dato — acá los litros', 3, total);
+          await escribir('f-litros', '32,4', false);
+          await decirPaso('El total se recalcula solo (litros × $/litro)', 4, total);
+          await escribir('f-total', '$66.323', false);
+          await decirPaso('Tocás Guardar — se recalcula también el rendimiento de esta carga y las siguientes', 5, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          q('celda-litros').textContent = '32,4 L';
+          q('celda-total').textContent = '$66.323';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="card">
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Fecha</th><th>Km</th><th>Litros</th><th>Total</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>22/07/2026</td><td>47.030</td><td>18,2 L</td><td>$36.040</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar esta carga?<br>Se va a recalcular el rendimiento de las cargas posteriores.</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en la fila que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await decirPaso('Avisa que va a recalcular el rendimiento de las cargas siguientes', 2, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 3, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const fila = q('fila');
+          fila.style.transition = 'opacity .4s ease';
+          fila.style.opacity = '0';
+          await sleep(400);
+          fila.remove();
+        }
+      }
+    ]
+  },
+
+  componentes: {
+    tag: 'Componentes',
+    acciones: [
+      {
+        key: 'nuevo', label: 'Agregar',
+        html: `
+      <div class="topbar"><button class="btn btn-p" data-role="btn-nuevo">+ Nuevo componente</button></div>
+      <div class="card">
+        <div class="ch">🛞 Componentes activos</div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px">
+            <div style="font-weight:700;font-size:12px;color:#e6edf3">Batería</div>
+            <div style="font-size:10px;color:#7d8590;margin:2px 0 6px">Instalado: 30.500 km · 02/01/2025</div>
+            <div style="height:6px;background:#30363d;border-radius:3px"><div style="height:6px;width:93%;background:#f85149;border-radius:3px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">🛞 Nuevo componente</div>
+          <div class="mbody">
+            <div class="fg"><label>Tipo</label><div class="val" data-role="f-tipo"></div></div>
+            <div class="fg"><label>Descripción</label><div class="val" data-role="f-desc"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Km de instalación</label><div class="val" data-role="f-km"></div></div>
+              <div class="fg"><label>Costo</label><div class="val" data-role="f-costo"></div></div>
+            </div>
+            <div class="fgrid">
+              <div class="fg"><label>Vida útil (km)</label><div class="val" data-role="f-vidakm"></div></div>
+              <div class="fg"><label>Vida útil (meses)</label><div class="val" data-role="f-vidameses"></div></div>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 6;
+          await decirPaso('Tocá "+ Nuevo componente" arriba a la derecha', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Tipo de componente (con sugerencias)', 2, total);
+          await moverCursorA('f-tipo'); await escribir('f-tipo', 'Neumáticos');
+          await decirPaso('Descripción, opcional', 3, total);
+          await moverCursorA('f-desc'); await escribir('f-desc', 'Bridgestone 195/65');
+          await decirPaso('Km de instalación y costo', 4, total);
+          await moverCursorA('f-km'); await escribir('f-km', '42.000', false);
+          await moverCursorA('f-costo'); await escribir('f-costo', '$380.000', false);
+          await decirPaso('Vida útil — por km, por tiempo, o ambas', 5, total);
+          await moverCursorA('f-vidakm'); await escribir('f-vidakm', '50.000', false);
+          await decirPaso('Tocás Guardar', 6, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          const lista = q('lista');
+          const item = document.createElement('div');
+          item.className = 'card-nueva';
+          item.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;margin-top:10px';
+          item.innerHTML = `<div style="font-weight:700;font-size:12px;color:#e6edf3">Neumáticos — Bridgestone 195/65</div><div style="font-size:10px;color:#7d8590;margin:2px 0 6px">Instalado: 42.000 km · hoy</div><div style="height:6px;background:#30363d;border-radius:3px"><div style="height:6px;width:2%;background:#3fb950;border-radius:3px"></div></div>`;
+          lista.appendChild(item);
+          requestAnimationFrame(() => item.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'editar', label: 'Editar',
+        html: `
+      <div class="card">
+        <div class="ch">🛞 Componentes activos</div>
+        <div class="card-body" style="padding:12px">
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div style="font-weight:700;font-size:12px;color:#e6edf3">Neumáticos — Bridgestone 195/65</div>
+              <button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button>
+            </div>
+            <div style="font-size:10px;color:#7d8590;margin:2px 0 6px" data-role="linea-costo">Instalado: 42.000 km · Costo: $380.000</div>
+            <div style="height:6px;background:#30363d;border-radius:3px"><div style="height:6px;width:12%;background:#3fb950;border-radius:3px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✎ Editar: Neumáticos</div>
+          <div class="mbody">
+            <div class="fg"><label>Descripción</label><div class="val" data-role="f-desc">Bridgestone 195/65</div></div>
+            <div class="fg"><label>Costo</label><div class="val" data-role="f-costo">$380.000</div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocás ✎ en el componente (para corregir un dato mal cargado)', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Se abre con los datos ya cargados', 2, total);
+          await moverCursorA('f-costo');
+          await decirPaso('Corregís lo que haga falta — acá el costo', 3, total);
+          await escribir('f-costo', '$395.000', false);
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          q('linea-costo').textContent = 'Instalado: 42.000 km · Costo: $395.000';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'reemplazar', label: 'Reemplazar',
+        html: `
+      <div class="card">
+        <div class="ch">🛞 Componentes activos</div>
+        <div class="card-body" style="padding:12px" data-role="lista">
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div style="font-weight:700;font-size:12px;color:#e6edf3">Batería</div>
+              <button class="btn" style="font-size:10px;padding:3px 8px;background:#1a4a1a;color:#3fb950;border-color:#2d6a2d" data-role="btn-reemplazar">🔄</button>
+            </div>
+            <div style="font-size:10px;color:#7d8590;margin:2px 0 6px">Instalado: 30.500 km · 02/01/2025</div>
+            <div style="height:6px;background:#30363d;border-radius:3px"><div style="height:6px;width:93%;background:#f85149;border-radius:3px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">🔄 Reemplazar: Batería</div>
+          <div class="mbody">
+            <div class="fgrid">
+              <div class="fg"><label>Km actual (del reemplazo)</label><div class="val" data-role="f-km"></div></div>
+              <div class="fg"><label>Fecha del reemplazo</label><div class="val" data-role="f-fecha-reemplazo"></div></div>
+            </div>
+            <p style="font-size:10px;color:#7d8590;margin:8px 0 6px;text-transform:uppercase;font-weight:700">Datos del componente nuevo</p>
+            <div class="fg"><label>Descripción</label><div class="val" data-role="f-desc"></div></div>
+            <div class="fg"><label>Costo</label><div class="val" data-role="f-costo"></div></div>
+            <div class="fg"><label>Vida útil (meses)</label><div class="val" data-role="f-vidameses"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 6;
+          await decirPaso('Tocás 🔄 cuando la cambiás de verdad (no es lo mismo que editar)', 1, total);
+          await moverCursorA('btn-reemplazar'); await click('btn-reemplazar'); overlay(true); await sleep(400);
+          await decirPaso('Km y fecha en que hiciste el cambio', 2, total);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await moverCursorA('f-fecha-reemplazo'); await escribir('f-fecha-reemplazo', '21/08/2026', false);
+          await decirPaso('Datos de la batería nueva', 3, total);
+          await moverCursorA('f-desc'); await escribir('f-desc', 'Moura 12x65');
+          await decirPaso('Costo y vida útil de la nueva', 4, total);
+          await moverCursorA('f-costo'); await escribir('f-costo', '$85.000', false);
+          await moverCursorA('f-vidameses'); await escribir('f-vidameses', '36', false);
+          await decirPaso('Tocás Guardar', 5, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('La vieja pasa al historial de reemplazos, y esta queda como la activa', 6, total);
+          const lista = q('lista');
+          lista.innerHTML = `<div class="card-nueva" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px"><div style="font-weight:700;font-size:12px;color:#e6edf3">Batería — Moura 12x65</div><div style="font-size:10px;color:#7d8590;margin:2px 0 6px">Instalado: 48.230 km · 21/08/2026</div><div style="height:6px;background:#30363d;border-radius:3px"><div style="height:6px;width:1%;background:#3fb950;border-radius:3px"></div></div></div>`;
+          requestAnimationFrame(() => lista.querySelector('.card-nueva').classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="card">
+        <div class="ch">🛞 Componentes activos</div>
+        <div class="card-body" style="padding:12px">
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px" data-role="item">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div style="font-weight:700;font-size:12px;color:#e6edf3">Filtro de aire</div>
+              <button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button>
+            </div>
+            <div style="font-size:10px;color:#7d8590;margin:2px 0 6px">Instalado: 40.000 km · 10/06/2026</div>
+          </div>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar este componente y su historial?</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en el componente que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await decirPaso('Te avisa que se borra también su historial', 2, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 3, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const item = q('item');
+          item.style.transition = 'opacity .4s ease';
+          item.style.opacity = '0';
+          await sleep(400);
+          item.remove();
+        }
+      }
+    ]
+  },
+
+  gastos: {
+    tag: 'Gastos',
+    acciones: [
+      {
+        key: 'fijo', label: 'Gasto fijo',
+        html: `
+      <div class="topbar">
+        <button class="btn" data-role="btn-fijo">+ Gasto fijo</button>
+        <button class="btn btn-p" data-role="btn-variable">+ Gasto variable</button>
+      </div>
+      <div class="card">
+        <div class="ch">💲 Costo por kilómetro</div>
+        <div class="card-body" style="padding:13px">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:#8b949e">
+            <span>Desde <span style="color:#e6edf3;font-family:monospace">21/08/2025</span></span>
+            <span>Hasta <span style="color:#e6edf3;font-family:monospace">21/08/2026</span></span>
+          </div>
+          <div class="demo-stats" style="margin-bottom:10px">
+            <div class="demo-stat"><div class="demo-stat-n">$201</div><div class="demo-stat-l">$/km total</div></div>
+            <div class="demo-stat"><div class="demo-stat-n">$140</div><div class="demo-stat-l">$/km variable</div></div>
+            <div class="demo-stat"><div class="demo-stat-n">14.500</div><div class="demo-stat-l">Km período</div></div>
+          </div>
+          <table>
+            <tbody>
+              <tr><td>Combustible</td><td>$1.850.000</td></tr>
+              <tr><td>Mantenimientos</td><td>$95.000</td></tr>
+              <tr><td>Componentes (prorrateados)</td><td>$48.500</td></tr>
+              <tr><td>Gastos variables extra</td><td>$32.000</td></tr>
+              <tr><td>Gastos fijos (prorrateados)</td><td>$890.000</td></tr>
+              <tr><td><b>Total</b></td><td><b>$2.915.500</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch">📌 Gastos fijos</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Tipo</th><th>Monto</th><th>Periodicidad</th></tr></thead>
+            <tbody data-role="tbody">
+              <tr><td>Patente/Impuesto</td><td>$18.500</td><td>bimestral</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">📌 Nuevo gasto fijo</div>
+          <div class="mbody">
+            <div class="fg"><label>Tipo</label><div class="val" data-role="f-tipo"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Monto</label><div class="val" data-role="f-monto"></div></div>
+              <div class="fg"><label>Periodicidad</label><div class="val" data-role="f-period"></div></div>
+            </div>
+            <div class="fg"><label>Fecha de inicio</label><div class="val" data-role="f-fecha"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 7;
+          await decirPaso('Arriba de todo, "Costo por km" resume el gasto total del período', 1, total);
+          await sleep(500);
+          await decirPaso('Tocá "+ Gasto fijo" arriba a la derecha', 2, total);
+          await moverCursorA('btn-fijo'); await click('btn-fijo'); overlay(true); await sleep(400);
+          await decirPaso('Elegís el tipo', 3, total);
+          await moverCursorA('f-tipo'); await click('f-tipo'); await seleccionar('f-tipo', 'Seguro');
+          await decirPaso('Monto y periodicidad', 4, total);
+          await moverCursorA('f-monto'); await escribir('f-monto', '$45.000', false);
+          await moverCursorA('f-period'); await click('f-period'); await seleccionar('f-period', 'Mensual');
+          await decirPaso('Fecha desde la que rige', 5, total);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '01/08/2026', false);
+          await decirPaso('Tocás Guardar', 6, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — ya aparece en Gastos fijos', 7, total);
+          const tbody = q('tbody');
+          const fila = document.createElement('tr');
+          fila.className = 'fila-nueva';
+          fila.innerHTML = `<td>Seguro</td><td>$45.000</td><td>mensual</td>`;
+          tbody.insertBefore(fila, tbody.firstChild);
+          requestAnimationFrame(() => fila.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'tarifa', label: 'Actualizar tarifa',
+        html: `
+      <div class="card">
+        <div class="ch">📌 Gastos fijos</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Tipo</th><th>Monto vigente</th><th>Acum. histórico</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>Seguro</td><td data-role="celda-monto">$45.000</td><td data-role="celda-acum">$280.000</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-tarifa">💲</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">💲 Actualizar tarifa — Seguro</div>
+          <div class="mbody">
+            <p style="font-size:11px;color:#8b949e;margin-bottom:10px">Tarifa vigente: <b style="color:#e6edf3">$45.000</b> (mensual), desde 01/08/2026.</p>
+            <div class="fgrid">
+              <div class="fg"><label>Monto nuevo</label><div class="val" data-role="f-monto"></div></div>
+              <div class="fg"><label>Rige desde</label><div class="val" data-role="f-fecha"></div></div>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Actualizar tarifa</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocás 💲 cuando cambia la tarifa (no crea un registro nuevo)', 1, total);
+          await moverCursorA('btn-tarifa'); await click('btn-tarifa'); overlay(true); await sleep(400);
+          await decirPaso('Monto nuevo y desde cuándo rige', 2, total);
+          await moverCursorA('f-monto'); await escribir('f-monto', '$52.000', false);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '01/09/2026', false);
+          await decirPaso('Lo aportado con la tarifa vieja queda congelado en el acumulado histórico', 3, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Tocás "Actualizar tarifa"', 4, total);
+          await click('btn-guardar'); overlay(false); await sleep(300);
+          q('celda-monto').textContent = '$52.000';
+          q('celda-acum').textContent = '$325.000';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'variable', label: 'Gasto variable',
+        html: `
+      <div class="topbar"><button class="btn btn-p" data-role="btn-nuevo">+ Gasto variable</button></div>
+      <div class="card">
+        <div class="ch">💸 Gastos variables</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th></tr></thead>
+            <tbody data-role="tbody">
+              <tr><td>15/08/2026</td><td>Peajes</td><td>Ruta 9 ida y vuelta</td><td>$3.200</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">💸 Nuevo gasto variable</div>
+          <div class="mbody">
+            <div class="fg"><label>Categoría</label><div class="val" data-role="f-cat"></div></div>
+            <div class="fg"><label>Descripción</label><div class="val" data-role="f-desc"></div></div>
+            <div class="fgrid">
+              <div class="fg"><label>Monto</label><div class="val" data-role="f-monto"></div></div>
+              <div class="fg"><label>Km (opcional)</label><div class="val" data-role="f-km"></div></div>
+            </div>
+            <div class="fg"><label>Fecha</label><div class="val" data-role="f-fecha"></div></div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 5;
+          await decirPaso('Tocá "+ Gasto variable" arriba a la derecha', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Elegís la categoría', 2, total);
+          await moverCursorA('f-cat'); await click('f-cat'); await seleccionar('f-cat', 'Multas');
+          await decirPaso('Descripción y monto', 3, total);
+          await moverCursorA('f-desc'); await escribir('f-desc', 'Exceso de velocidad Ruta 9');
+          await moverCursorA('f-monto'); await escribir('f-monto', '$45.000', false);
+          await decirPaso('Tocás Guardar', 4, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — ya aparece en Gastos variables', 5, total);
+          const tbody = q('tbody');
+          const fila = document.createElement('tr');
+          fila.className = 'fila-nueva';
+          fila.innerHTML = `<td>21/08/2026</td><td>Multas</td><td>Exceso de velocidad Ruta 9</td><td>$45.000</td>`;
+          tbody.insertBefore(fila, tbody.firstChild);
+          requestAnimationFrame(() => fila.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="card">
+        <div class="ch">📌 Gastos fijos</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Tipo</th><th>Monto</th><th>Periodicidad</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>Cochera</td><td>$22.000</td><td>mensual</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar este gasto fijo?<br>También se pierde su acumulado histórico.</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en el gasto fijo que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await decirPaso('Avisa que se pierde también el acumulado histórico', 2, total);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 3, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const fila = q('fila');
+          fila.style.transition = 'opacity .4s ease';
+          fila.style.opacity = '0';
+          await sleep(400);
+          fila.remove();
+        }
+      }
+    ]
+  },
+
+  reportes: {
+    tag: 'Reportes',
+    acciones: [
+      {
+        key: 'registrar', label: 'Registrar lectura',
+        html: `
+      <div class="card">
+        <div class="ch">🔢 Lecturas de kilometraje mensual<button class="btn" style="font-size:10px;padding:3px 9px" data-role="btn-nuevo">+ Registrar</button></div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Mes</th><th>Km</th><th>Km del período</th></tr></thead>
+            <tbody data-role="tbody">
+              <tr><td>jul 26</td><td>46.980</td><td>1.310</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">🔢 Registrar lectura de km</div>
+          <div class="mbody">
+            <div class="fgrid">
+              <div class="fg"><label>Fecha</label><div class="val" data-role="f-fecha"></div></div>
+              <div class="fg"><label>Kilometraje</label><div class="val" data-role="f-km"></div></div>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 4;
+          await decirPaso('Tocá "+ Registrar" (día 1 de cada mes, o cualquier día cercano)', 1, total);
+          await moverCursorA('btn-nuevo'); await click('btn-nuevo'); overlay(true); await sleep(400);
+          await decirPaso('Fecha y kilometraje de hoy', 2, total);
+          await moverCursorA('f-fecha'); await escribir('f-fecha', '01/08/2026', false);
+          await moverCursorA('f-km'); await escribir('f-km', '48.230', false);
+          await decirPaso('Tocás Guardar', 3, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          await decirPaso('Listo — se guarda una sola lectura por mes', 4, total);
+          const tbody = q('tbody');
+          const fila = document.createElement('tr');
+          fila.className = 'fila-nueva';
+          fila.innerHTML = `<td>ago 26</td><td>48.230</td><td>1.250</td>`;
+          tbody.insertBefore(fila, tbody.firstChild);
+          requestAnimationFrame(() => fila.classList.add('show'));
+          await sleep(600);
+        }
+      },
+      {
+        key: 'editar', label: 'Editar',
+        html: `
+      <div class="card">
+        <div class="ch">🔢 Lecturas de kilometraje mensual</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Mes</th><th>Km</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>jul 26</td><td data-role="celda-km">46.980</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px" data-role="btn-editar">✎</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mhead">✎ Editar lectura de km</div>
+          <div class="mbody">
+            <div class="fgrid">
+              <div class="fg"><label>Fecha</label><div class="val" data-role="f-fecha">01/07/2026</div></div>
+              <div class="fg"><label>Kilometraje</label><div class="val" data-role="f-km">46.980</div></div>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn btn-p" data-role="btn-guardar">Guardar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✎ en la lectura que querés corregir', 1, total);
+          await moverCursorA('btn-editar'); await click('btn-editar'); overlay(true); await sleep(400);
+          await decirPaso('Corregís el km si te equivocaste al cargarlo', 2, total);
+          await moverCursorA('f-km'); await escribir('f-km', '47.100', false);
+          await decirPaso('Tocás Guardar', 3, total);
+          await moverCursorA('btn-guardar'); await click('btn-guardar'); overlay(false); await sleep(300);
+          q('celda-km').textContent = '47.100';
+          await sleep(500);
+        }
+      },
+      {
+        key: 'eliminar', label: 'Eliminar',
+        html: `
+      <div class="card">
+        <div class="ch">🔢 Lecturas de kilometraje mensual</div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Mes</th><th>Km</th><th></th></tr></thead>
+            <tbody>
+              <tr data-role="fila">
+                <td>jun 26</td><td>44.490</td>
+                <td><button class="btn" style="font-size:10px;padding:3px 8px;background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-eliminar">✕</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="moverlay" data-role="overlay">
+        <div class="modal">
+          <div class="mbody confirm-box">
+            <p>¿Eliminar esta lectura de kilometraje?</p>
+          </div>
+          <div class="mfoot"><button class="btn" data-role="btn-cancelar">Cancelar</button><button class="btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d" data-role="btn-guardar">Eliminar</button></div>
+        </div>
+      </div>
+      ${cursorSvg}
+        `,
+        async play(){
+          const total = 3;
+          await decirPaso('Tocás ✕ en la lectura que querés borrar', 1, total);
+          await moverCursorA('btn-eliminar'); await click('btn-eliminar'); overlay(true); await sleep(400);
+          await moverCursorA('btn-guardar');
+          await decirPaso('Confirmás', 2, total);
+          await click('btn-guardar'); overlay(false); await sleep(200);
+          const fila = q('fila');
+          fila.style.transition = 'opacity .4s ease';
+          fila.style.opacity = '0';
+          await sleep(400);
+          fila.remove();
+        }
+      }
+    ]
+  }
+};
+
+const modulosExtra = {
+  ajustes: {
+    tag: 'Ajustes', autoplay: true,
+    html: `
+      <div class="card">
+        <div class="ch">🔔 Sensibilidad de alertas de vencimiento</div>
+        <div class="card-body" style="padding:13px">
+          <div class="fgrid">
+            <div class="fg"><label>Avisar mantenimiento si faltan (km)</label><div class="val" data-role="f-km">500</div></div>
+            <div class="fg"><label>Avisar componente al llegar a (%)</label><div class="val" data-role="f-pct">80</div></div>
+          </div>
+          <button class="btn btn-p" data-role="btn-guardar" style="margin-top:6px">💾 Guardar</button>
+          <span data-role="toast" style="display:none;margin-left:8px;font-size:11px;color:#3fb950">✅ Ajustes guardados</span>
+        </div>
+      </div>
+      ${cursorSvg}
+    `,
+    async play(){
+      const total = 4;
+      await decirPaso('Estos umbrales definen cuándo aparece el aviso de vencimiento', 1, total);
+      await moverCursorA('f-km');
+      await decirPaso('Cambiás el umbral de km si querés más o menos anticipación', 2, total);
+      await escribir('f-km', '800', false);
+      await decirPaso('Lo mismo con el % de vida útil de componentes', 3, total);
+      await moverCursorA('f-pct'); await escribir('f-pct', '70', false);
+      await decirPaso('Tocás Guardar', 4, total);
+      await moverCursorA('btn-guardar'); await click('btn-guardar');
+      const toast = q('toast');
+      toast.style.display = 'inline';
+      await sleep(700);
+    }
+  },
+
+  backup: {
+    tag: 'Backup', autoplay: true,
+    html: `
+      <div class="card">
+        <div class="ch">☁️ Google Drive</div>
+        <div class="card-body" style="padding:13px">
+          <p style="font-size:12px;color:#8b949e;margin-bottom:10px">Estado: <span data-role="estado" style="color:#7d8590">No conectado</span></p>
+          <button class="btn btn-p" data-role="btn-conectar">🔄 Conectar</button>
+        </div>
+      </div>
+      <div class="card" data-role="card-hist" style="opacity:0;transition:opacity .4s ease">
+        <div class="ch">☁️ Backups históricos en Drive</div>
+        <div class="card-body" style="padding:13px">
+          <table><tbody data-role="tbody">
+            <tr><td>21/08/2026 09:14</td><td>Automático</td></tr>
+            <tr><td>20/08/2026 18:40</td><td>Salir</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      ${cursorSvg}
+    `,
+    async play(){
+      const total = 3;
+      await decirPaso('La primera vez, tocás "Conectar" para vincular tu cuenta de Google', 1, total);
+      await moverCursorA('btn-conectar'); await click('btn-conectar'); await sleep(300);
+      await decirPaso('Se abre el login de Google (fuera de la app) y volvés ya conectado', 2, total);
+      const estado = q('estado');
+      estado.innerHTML = '<span style="color:#3fb950">✅ Conectado</span>';
+      const btnConectar = document.querySelector('[data-role="btn-conectar"]');
+      btnConectar.textContent = '🔄 Sincronizar ahora';
+      await sleep(500);
+      await decirPaso('A partir de ahí, sincroniza sola cada vez que guardás algo', 3, total);
+      const cardHist = q('card-hist');
+      cardHist.style.opacity = '1';
+      await sleep(600);
+    }
+  }
+};
+Object.assign(modulos, modulosExtra);
+
+let moduloActual = null;
+let accionActual = null;
+
+function normalizarModulo(mod){
+  // Compatibilidad: los módulos viejos tenían un solo play() suelto — los
+  // trato como si tuvieran una única acción "principal".
+  if(!mod.acciones){
+    mod.acciones = [{ key:'principal', label:mod.tag, html:mod.html, play:mod.play }];
+  }
+  return mod;
+}
+
+function renderTabs(mod, accKey){
+  const tabsWrap = document.createElement('div');
+  if(mod.acciones.length <= 1) return tabsWrap; // no hace falta mostrar pestañas de una sola acción
+  tabsWrap.className = 'accion-tabs';
+  tabsWrap.innerHTML = mod.acciones.map(a =>
+    `<button class="accion-tab ${a.key===accKey?'on':''}" data-acc="${a.key}">${a.label}</button>`
+  ).join('');
+  return tabsWrap;
+}
+
+async function cargarAccion(modKey, accKey){
+  const mod = modulos[modKey];
+  const acc = mod.acciones.find(a => a.key === accKey);
+  accionActual = accKey;
+  stage.innerHTML = '';
+  const tabs = renderTabs(mod, accKey);
+  stage.appendChild(tabs);
+  tabs.querySelectorAll('.accion-tab').forEach(btn => {
+    btn.addEventListener('click', () => cargarAccion(modKey, btn.dataset.acc));
+  });
+  const contenido = document.createElement('div');
+  contenido.innerHTML = acc.html;
+  stage.appendChild(contenido);
+  moduloTag.textContent = mod.acciones.length > 1 ? `${mod.tag} · ${acc.label}` : mod.tag;
+  appPtitle.textContent = mod.tag;
+  await acc.play();
+}
+
+async function cargarModulo(key){
+  moduloActual = key;
+  document.querySelectorAll('.sidebar a').forEach(a => a.classList.toggle('on', a.dataset.nav === key));
+  const mod = normalizarModulo(modulos[key]);
+  await cargarAccion(key, mod.acciones[0].key);
+}
+
+document.querySelectorAll('.sidebar a').forEach(a => {
+  a.addEventListener('click', () => cargarModulo(a.dataset.nav));
+});
+btnReplay.addEventListener('click', () => cargarAccion(moduloActual, accionActual));
+
+cargarModulo('dashboard');
+
+// El modal de vencimientos aparece solo al abrir la app (igual que en la
+// app real) y bloquea el menú lateral hasta que lo cierres — así se ve ese
+// comportamiento también, no solo las acciones de cada módulo.
+document.getElementById('sidebar').classList.add('disabled');
+document.getElementById('btn-cerrar-vencimientos-inicial').addEventListener('click', () => {
+  document.getElementById('modal-vencimientos-inicial').classList.remove('show');
+  document.getElementById('sidebar').classList.remove('disabled');
+});
+</script>
+</body>
+</html>
