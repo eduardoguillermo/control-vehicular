@@ -387,7 +387,6 @@
   <a href="#backup">💾 Backup / Snapshots</a>
   <a href="#drive">☁️ Sincronización con Drive</a>
   <a href="#salir">🚪 Salir</a>
-  <a href="#pantallas">📸 Pantallas de muestra</a>
   <a href="#changelog">📋 Historial de cambios</a>
 </nav>
 
@@ -451,6 +450,70 @@
         <div class="section-subtitle">El panorama del vehículo activo</div>
       </div>
     </div>
+        <h2>📸 Así se ve</h2>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <div class="demo-alert-stack">
+        <div class="demo-alert demo-alert-warn"><span>🔧️ Toca "Cambio de aceite" (programado a los 50.000 km, ya llevás 49.850 km)</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
+        <div class="demo-alert demo-alert-crit"><span>🛞 Batería al 93% de su vida útil (por tiempo) — faltan 2 semanas</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
+      </div>
+      <div class="demo-stats">
+        <div class="demo-stat"><div class="demo-stat-n">48.230</div><div class="demo-stat-l">Km actual</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">12,4</div><div class="demo-stat-l">Último rendim. (km/L)</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,1 L/100km</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">11,8</div><div class="demo-stat-l">Promedio 3 meses</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,5 L/100km</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">$128.400</div><div class="demo-stat-l">Combustible este mes</div><div class="demo-stat-extra">62,3 L</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">$941.200</div><div class="demo-stat-l">Combustible acumulado 2026</div><div class="demo-stat-extra">438,7 L</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">$187</div><div class="demo-stat-l">Costo / km (12m)</div></div>
+        <div class="demo-stat" style="min-width:195px;max-width:210px;text-align:left;padding:8px 10px">
+          <div class="demo-stat-l" style="margin-bottom:6px;font-size:9px">⚠️ Novedades pendientes (2)</div>
+          <div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-top:1px solid #30363d;font-size:10px">
+            <span class="demo-pill demo-g-alta" style="font-size:9px;padding:1px 6px">Alta</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6edf3">Ruido suspensión</span><span style="color:#7d8590">4d</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-top:1px solid #30363d;font-size:10px">
+            <span class="demo-pill demo-g-media" style="font-size:9px;padding:1px 6px">Media</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6edf3">Pierde aceite</span><span style="color:#7d8590">12d</span>
+          </div>
+        </div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">⛽ Últimas cargas</div><span class="demo-btn demo-btn-p">+ Nueva carga</span></div>
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Fecha</th><th>Km</th><th>Combustible</th><th>Litros</th><th>Total</th><th>Lleno</th><th>Rendim.</th></tr></thead>
+            <tbody>
+              <tr><td>21/08/2026</td><td>48.230</td><td>YPF · Super</td><td>32,4 L</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td></tr>
+              <tr><td>05/08/2026</td><td>47.680</td><td>Shell · Premium</td><td>29,9 L</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">🔧️ Próximos mantenimientos</div></div>
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Servicio</th><th>Próximo km</th><th>Faltan</th></tr></thead>
+            <tbody>
+              <tr><td>Cambio de aceite</td><td>50.000</td><td style="color:#d29922">1.770 km</td></tr>
+              <tr><td>Correa de distribución</td><td>90.000</td><td>41.770 km</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">🛞 Estado de componentes</div></div>
+        <div class="demo-card-body">
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Neumáticos — Bridgestone 195/65</span><span style="color:#8b949e">74%</span></div>
+            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
+            <div style="font-size:11px;color:#7d8590">Próximo cambio estimado: ~50.000 km</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Batería</span><span style="color:#8b949e">93%</span></div>
+            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
+            <div style="font-size:11px;color:#7d8590">Faltan 2 semanas (~05/09/2026)</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <p>Muestra de un vistazo:</p>
     <ul>
       <li>Kilometraje actual, último rendimiento y promedio de los últimos 3 meses</li>
@@ -502,6 +565,51 @@
         <div class="section-subtitle">El modal que aparece al abrir la app</div>
       </div>
     </div>
+    <h2>📸 Así se ve</h2>
+    <p style="font-size:11px;color:#7d8590;margin-bottom:10px">Es un modal (ventana emergente), no una pantalla propia — se abre solo al entrar al Dashboard si hay algo vencido o por vencer.</p>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <div style="max-width:520px;margin:0 auto;background:#161b22;border:1px solid #30363d;border-radius:6px;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between">
+          <h3 style="font-size:14px;font-weight:700;color:#e6edf3;margin:0">⚠️ Próximos vencimientos</h3>
+          <span class="demo-btn">✕</span>
+        </div>
+        <div style="padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:10px;background:rgba(210,153,34,.08);border:1px dashed rgba(210,153,34,.35)">
+            <div style="font-size:12px;color:#e6edf3">⚠️ Tenés <b>2</b> novedades pendientes — aprovechá este service para pedirle al taller que las revise.</div>
+            <span class="demo-btn">📋 Ver lista</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:rgba(248,81,73,.1);border-left:3px solid #f85149">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:#e6edf3">Cambio de aceite</div>
+              <div style="font-size:11px;color:#8b949e">Vencido hace 150 km</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#fff;background:#f85149;padding:3px 8px;border-radius:10px;white-space:nowrap">Vencido</span>
+            <span class="demo-btn demo-btn-g">✓ Registrar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:rgba(248,81,73,.1);border-left:3px solid #f85149">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:#e6edf3">Batería</div>
+              <div style="font-size:11px;color:#8b949e">Vencido hace 2 semanas (93%)</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#fff;background:#f85149;padding:3px 8px;border-radius:10px;white-space:nowrap">Vencido</span>
+            <span class="demo-btn demo-btn-g">🔄 Reemplazar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:0;background:rgba(210,153,34,.1);border-left:3px solid #d29922">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:#e6edf3">Neumáticos — Bridgestone 195/65</div>
+              <div style="font-size:11px;color:#8b949e">Vence a los 50.000 km (74%)</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#fff;background:#d29922;padding:3px 8px;border-radius:10px;white-space:nowrap">Próximo</span>
+            <span class="demo-btn demo-btn-g">🔄 Reemplazar</span>
+          </div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid #30363d">
+          <span class="demo-btn" style="width:100%;text-align:center;display:block;box-sizing:border-box">Cerrar</span>
+        </div>
+      </div>
+    </div>
+
     <p>Al abrir la app en PC (o al entrar a "Ver app completa" desde el celular), si hay algo próximo a vencer aparece automáticamente un modal con el resumen — no hace falta ir a buscarlo módulo por módulo.</p>
     <p>Incluye dos tipos de aviso:</p>
     <ul>
@@ -518,6 +626,27 @@
       <div>
         <div class="section-title">Combustible</div>
         <div class="section-subtitle">Cargas, rendimiento y cálculo automático</div>
+      </div>
+    </div>
+        <h2>📸 Así se ve</h2>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <p style="font-size:11px;color:#7d8590;margin-bottom:10px">El botón "+ Nueva carga" está arriba de todo de la pantalla (no dentro de la tarjeta).</p>
+      <div class="demo-stats" style="margin-bottom:10px">
+        <div class="demo-stat"><div class="demo-stat-n">12,1</div><div class="demo-stat-l">Prom. km/L (3m)</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,3 L/100km</div></div>
+        <div class="demo-stat"><div class="demo-stat-n">47</div><div class="demo-stat-l">Cargas registradas</div></div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍 Estación</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>21/08/2026</td><td>48.230</td><td>YPF</td><td>Super</td><td>32,4 L</td><td>$2.000</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Ruta+9+Maldonado" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Ruta 9, Maldonado</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>05/08/2026</td><td>47.680</td><td>Shell</td><td>Premium</td><td>29,9 L</td><td>$2.048</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=Shell+Av.+Espa%C3%B1a" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 Shell Av. España</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>22/07/2026</td><td>47.030</td><td>YPF</td><td>Super</td><td>18,2 L</td><td>$1.980</td><td>$36.040</td><td>—</td><td>—</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Los+Aromos" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Los Aromos</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <h2>Los campos</h2>
@@ -607,6 +736,48 @@
         <div class="section-subtitle">Vida útil por km, por tiempo, o ambas</div>
       </div>
     </div>
+        <h2>📸 Así se ve</h2>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <p style="font-size:11px;color:#7d8590;margin-bottom:10px">El botón "+ Nuevo componente" está arriba de todo de la pantalla (no dentro de la tarjeta).</p>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">🛞 Componentes activos</div></div>
+        <div class="demo-card-body">
+          <div class="demo-comp" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px">
+            <div class="demo-comp-row">
+              <div class="demo-comp-title">Neumáticos — Bridgestone 195/65</div>
+              <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
+            </div>
+            <div class="demo-comp-sub">Instalado: 42.000 km · 12/03/2026 ✅</div>
+            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
+            <div class="demo-comp-detail">6.230 km recorridos (74% por km)</div>
+            <div class="demo-comp-detail">Próx. cambio: ~50.000 km — limita por km</div>
+          </div>
+          <div class="demo-comp" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;margin-top:10px">
+            <div class="demo-comp-row">
+              <div class="demo-comp-title">Batería</div>
+              <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
+            </div>
+            <div class="demo-comp-sub">Instalado: 30.500 km · 02/01/2025 ✅</div>
+            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
+            <div class="demo-comp-detail">33,5 meses transcurridos (93% por tiempo)</div>
+            <div class="demo-comp-detail">Próx. cambio: faltan 2 semanas (~05/09/2026) — limita por tiempo</div>
+          </div>
+        </div>
+      </div>
+      <div class="info">Verde = tranquilo, ámbar = atento (≥70%), rojo = urgente (≥90%) — mismos colores que las alertas del Dashboard.</div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">📋 Historial de reemplazos</div></div>
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Tipo</th><th>Instalado</th><th>Reemplazado</th><th>Vida útil real</th><th>Estimada</th><th>Costo</th><th>$/km</th></tr></thead>
+            <tbody>
+              <tr><td>Neumáticos — Michelin 195/65</td><td>2.100</td><td>42.000</td><td>39.900</td><td>40.000</td><td>$380.000</td><td>$9,52</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <p>A diferencia de los mantenimientos programados (que se repiten cada X km desde que se hicieron), acá lo que importa es la <b>vida útil estimada</b> de un componente que instalaste una vez y no se "repite" — se reemplaza cuando se gasta.</p>
     <p>No todos los componentes se gastan por uso: los neumáticos sí dependen de los km recorridos, pero la <b>batería</b> típicamente se vence por tiempo (ej: 36 meses), la hayas usado mucho o poco. Por eso cada componente admite dos criterios independientes:</p>
     <table>
@@ -650,6 +821,68 @@
         <div class="section-subtitle">Fijos, variables y costo por kilómetro</div>
       </div>
     </div>
+    <h2>📸 Así se ve</h2>
+    <p style="font-size:11px;color:#7d8590;margin-bottom:10px">Los botones "+ Gasto fijo" y "+ Gasto variable" están arriba de todo de la pantalla (no dentro de una tarjeta).</p>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">💲 Costo por kilómetro</div></div>
+        <div class="demo-card-body">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:11px;color:#8b949e">
+            <span>Desde <span style="color:#e6edf3;font-family:monospace">21/08/2025</span></span>
+            <span>Hasta <span style="color:#e6edf3;font-family:monospace">21/08/2026</span></span>
+          </div>
+          <div class="demo-stats" style="margin-bottom:12px">
+            <div class="demo-stat"><div class="demo-stat-n">$201</div><div class="demo-stat-l">$/km total</div></div>
+            <div class="demo-stat"><div class="demo-stat-n">$140</div><div class="demo-stat-l">$/km variable</div></div>
+            <div class="demo-stat"><div class="demo-stat-n">14.500</div><div class="demo-stat-l">Km en el período</div></div>
+          </div>
+          <table class="demo-table">
+            <tbody>
+              <tr><td>Combustible</td><td>$1.850.000</td></tr>
+              <tr><td>Mantenimientos</td><td>$95.000</td></tr>
+              <tr><td>Componentes (neumáticos/batería, prorrateados)</td><td>$48.500</td></tr>
+              <tr><td style="padding-left:22px;color:#7d8590;font-size:10px">↳ Neumáticos — Bridgestone 195/65 ($380.000)</td><td style="color:#7d8590;font-size:10px">$48.500</td></tr>
+              <tr><td>Gastos variables extra</td><td>$32.000</td></tr>
+              <tr><td>Gastos fijos (prorrateados)</td><td>$890.000</td></tr>
+              <tr><td style="padding-left:22px;color:#7d8590;font-size:10px">↳ Seguro (mensual, $45.000 vigente)</td><td style="color:#7d8590;font-size:10px">$520.000</td></tr>
+              <tr><td style="padding-left:22px;color:#7d8590;font-size:10px">↳ Patente/Impuesto (bimestral, $18.500 vigente)</td><td style="color:#7d8590;font-size:10px">$150.000</td></tr>
+              <tr><td style="padding-left:22px;color:#7d8590;font-size:10px">↳ Cochera (mensual, $22.000 vigente)</td><td style="color:#7d8590;font-size:10px">$220.000</td></tr>
+              <tr><td><b>Total</b></td><td><b>$2.915.500</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">📌 Gastos fijos</div></div>
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Tipo</th><th>Monto vigente</th><th>Periodicidad</th><th>Vigente desde</th><th>Acum. histórico</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Seguro</td><td>$45.000</td><td>mensual</td><td>01/08/2026</td><td>$280.000</td><td style="white-space:nowrap"><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn">💲</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>Patente/Impuesto</td><td>$18.500</td><td>bimestral</td><td>01/01/2026</td><td style="color:#7d8590">—</td><td style="white-space:nowrap"><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn">💲</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>Cochera</td><td>$22.000</td><td>mensual</td><td>01/03/2026</td><td style="color:#7d8590">—</td><td style="white-space:nowrap"><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn">💲</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">💸 Gastos variables</div></div>
+        <div class="demo-card-body" style="padding:0">
+          <table class="demo-table">
+            <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>20/08/2026</td><td>Multas</td><td>Exceso de velocidad Ruta 9</td><td>$45.000</td><td><span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>15/08/2026</td><td>Peajes</td><td>Ruta 9 ida y vuelta</td><td>$3.200</td><td><span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>02/08/2026</td><td>Estacionamiento</td><td>Cochera shopping</td><td>$2.500</td><td><span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <h2>Gastos fijos</h2>
     <div class="warning">Cargar, corregir, actualizar tarifa, fusionar duplicados o eliminar un gasto fijo <b>solo se puede hacer desde la PC</b>. Si lo intentás desde el celular, la app avisa y no te deja continuar — misma restricción que Mantenimientos, Novedades y Componentes (ver <a href="#drive">Sincronización con Drive</a>).</div>
     <p>Seguro, patente, cochera, alarma — cosas que pagás tengas el auto parado o lo uses todos los días. Se cargan con una periodicidad y se prorratean automáticamente según el rango de fechas que estés mirando:</p>
@@ -695,6 +928,72 @@
       <div>
         <div class="section-title">Reportes</div>
         <div class="section-subtitle">Km y gasto por mes, desde la primera carga</div>
+      </div>
+    </div>
+        <h2>📸 Así se ve</h2>
+    <div class="screenshot-frame">
+      <div class="screenshot-label">Ejemplo con datos de muestra</div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">📈 Km y gasto por mes</div></div>
+        <div class="demo-card-body">
+          <div class="barchart-legend">
+            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#3b82f6"></span>Km recorridos</span>
+            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#7c5cff"></span>Gasto total</span>
+            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:repeating-linear-gradient(45deg,#8b949e,#8b949e 3px,#30363d 3px,#30363d 6px)"></span>Mes en curso</span>
+          </div>
+          <div class="barchart-combo">
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:62%" title="1.240 km"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:48%" title="$185.000"></div>
+            </div><div class="barchart-combo-label">mar</div></div>
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:78%" title="1.560 km"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:55%" title="$210.000"></div>
+            </div><div class="barchart-combo-label">abr</div></div>
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:70%" title="1.400 km"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:100%" title="$380.000"></div>
+            </div><div class="barchart-combo-label">may</div></div>
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:85%" title="1.700 km"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:50%" title="$195.000"></div>
+            </div><div class="barchart-combo-label">jun</div></div>
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:100%" title="2.010 km"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:62%" title="$230.000"></div>
+            </div><div class="barchart-combo-label">jul</div></div>
+            <div class="barchart-combo-col"><div class="barchart-combo-bars">
+              <div class="barchart-combo-bar barchart-combo-bar-km en-curso" style="height:35%" title="700 km (parcial)"></div>
+              <div class="barchart-combo-bar barchart-combo-bar-gasto en-curso" style="height:30%" title="$112.000 (parcial)"></div>
+            </div><div class="barchart-combo-label en-curso">ago ●</div></div>
+          </div>
+          <p style="font-size:10px;color:#6e7681;margin-top:8px;text-align:center">El mes en curso es un dato parcial: la barra se va a ir agrandando a medida que cargues combustible y gastos.</p>
+        </div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-ch"><div class="demo-ct">🔢 Lecturas de kilometraje mensual</div><span class="demo-btn demo-btn-p">+ Registrar</span></div>
+        <div class="demo-card-body">
+          <p style="font-size:12px;color:#8b949e;margin-bottom:12px">Registrá el km el día 1 de cada mes (o cualquier día cercano) y acá vas a ver cuánto recorriste cada mes, independiente de las cargas de combustible.</p>
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <div style="position:relative;min-width:200px">
+              <svg viewBox="0 0 200 120" style="width:100%;min-width:200px;height:120px;display:block">
+                <polyline points="22.0,14.0 178.0,23.1" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                <circle cx="22.0" cy="14.0" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>jul 26: 1.310 km</title></circle><circle cx="178.0" cy="23.1" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>ago 26: 1.180 km</title></circle>
+              </svg>
+              <div style="position:relative;width:200px;height:14px">
+                <span style="position:absolute;left:22.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">jul 26</span><span style="position:absolute;left:178.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">ago 26</span>
+              </div>
+            </div>
+          </div>
+          <table class="demo-table">
+            <thead><tr><th>Mes</th><th>Fecha</th><th>Km</th><th>Km del período</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>ago 26</td><td>01/08/2026</td><td>46.980</td><td>1.180</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>jul 26</td><td>01/07/2026</td><td>45.800</td><td>1.310</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+              <tr><td>jun 26</td><td>02/06/2026</td><td>44.490</td><td>—</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <p>Un gráfico de barras combinado del vehículo activo, con dos barras por mes:</p>
@@ -796,6 +1095,42 @@
         <div class="section-subtitle">Lo único que ves en el cel</div>
       </div>
     </div>
+        <h2>📸 Así se ve</h2>
+    <p style="font-size:12px;color:#64748b;margin-bottom:6px">🖱️ Los campos <b>Marca</b>, <b>Tipo</b>, <b>Litros</b>, <b>$/Litro</b>, <b>Total pagado</b> y el switch de tanque lleno de este ejemplo funcionan de verdad — probalos. Litros/$/Litro/Total se calculan solos entre sí (igual que en la app: con 2 de los 3 completos, calcula el tercero). No guardan nada, es solo para que veas cómo se comporta el formulario.</p>
+    <div class="screenshot-frame" style="display:flex;justify-content:center;background:transparent;border:none;box-shadow:none;padding:0">
+      <div style="width:100%">
+        <div class="screenshot-label" style="justify-content:center;color:#475569">Ejemplo con datos de muestra</div>
+        <div class="demo-phone">
+          <div class="demo-phone-notch"></div>
+          <div class="demo-vr-top">
+            <div class="demo-vr-title">⛽ Control Vehicular</div>
+            <div class="demo-vr-sub">Carga rápida de combustible</div>
+            <div class="demo-vr-vsel" style="background:transparent;border:none;padding-left:0;color:#8b949e">🚗 AB123CD</div>
+          </div>
+          <div class="demo-vr-body">
+            <div class="demo-vr-gps">📍 YPF Ruta 9, Maldonado</div>
+            <div class="demo-vr-fg"><label>Kilometraje actual</label><div class="demo-vr-input">48.230</div></div>
+            <div class="demo-vr-row">
+              <div class="demo-vr-fg"><label>Marca</label><select class="demo-vr-select">
+                <option>Axion</option><option selected>YPF</option><option>Shell</option><option>Otras</option>
+              </select></div>
+              <div class="demo-vr-fg"><label>Tipo</label><select class="demo-vr-select">
+                <option selected>Super</option><option>Premium</option>
+              </select></div>
+            </div>
+            <div class="demo-vr-row">
+              <div class="demo-vr-fg"><label>Litros</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-litros" value="32.4" oninput="demoRecalcularCarga('litros')" style="width:100%;font-family:inherit"></div>
+              <div class="demo-vr-fg"><label>$ / Litro</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-costo" value="2000" oninput="demoRecalcularCarga('costo')" style="width:100%;font-family:inherit"></div>
+            </div>
+            <div class="demo-vr-fg"><label>Total pagado</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-totalpagado" value="64800" oninput="demoRecalcularCarga('total')" style="width:100%;font-family:inherit"></div>
+            <div class="demo-vr-switch"><label>⛽ ¿Tanque lleno?</label><div class="demo-vr-switch-dot" onclick="this.classList.toggle('off')" title="Tocá para probar"></div></div>
+            <div class="demo-vr-btn-main">Guardar carga</div>
+          </div>
+          <div class="demo-vr-footer"><div>🔄 Sincronizar</div><div>🚪 Guardar y salir</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="info">La ubicación (📍) se completa sola en segundo plano apenas abrís el formulario — para cuando terminás de cargar el resto, normalmente ya está lista (ver <a href="#combustible">Estación / ubicación</a>).</div>
     <p>Al abrir la app desde el celular, entrás directo a un formulario de una sola pantalla: vehículo activo, kilometraje, marca, tipo, litros, precio/L, total y el switch de tanque lleno.</p>
     <div class="steps">
       <div class="step"><div class="step-num"></div><div class="step-body">Cargás los datos de la carga que acabás de hacer.</div></div>
@@ -857,252 +1192,6 @@
     <div class="note">Los navegadores bloquean el cierre automático de pestañas que no fueron abiertas por script — es una limitación de seguridad del navegador, no de la app. Si no se cierra sola, el mensaje final te confirma que ya podés cerrarla vos.</div>
   </div>
 
-  <div class="section" id="pantallas">
-    <div class="section-header">
-      <div class="section-icon">📸</div>
-      <div>
-        <div class="section-title">Pantallas de muestra</div>
-        <div class="section-subtitle">Con datos de ejemplo, replicando la estructura real de cada pantalla</div>
-      </div>
-    </div>
-    <p>Estas no son capturas de la app — son ilustraciones armadas con los mismos colores, textos y estructura reales (mismas cards, mismas columnas, mismos botones), con datos inventados, a modo de referencia visual.</p>
-
-    <h2>📊 Dashboard</h2>
-    <div class="screenshot-frame">
-      <div class="screenshot-label">Ejemplo con datos de muestra</div>
-      <div class="demo-alert-stack">
-        <div class="demo-alert demo-alert-warn"><span>🔧️ Toca "Cambio de aceite" (programado a los 50.000 km, ya llevás 49.850 km)</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
-        <div class="demo-alert demo-alert-crit"><span>🛞 Batería al 93% de su vida útil (por tiempo) — faltan 2 semanas</span><span class="demo-btn" onclick="this.closest('.demo-alert').style.display='none'" style="cursor:pointer" title="Tocá para probar">Descartar</span></div>
-      </div>
-      <div class="demo-stats">
-        <div class="demo-stat"><div class="demo-stat-n">48.230</div><div class="demo-stat-l">Km actual</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">12,4</div><div class="demo-stat-l">Último rendim. (km/L)</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,1 L/100km</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">11,8</div><div class="demo-stat-l">Promedio 3 meses</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,5 L/100km</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">$128.400</div><div class="demo-stat-l">Combustible este mes</div><div class="demo-stat-extra">62,3 L</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">$941.200</div><div class="demo-stat-l">Combustible acumulado 2026</div><div class="demo-stat-extra">438,7 L</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">$187</div><div class="demo-stat-l">Costo / km (12m)</div></div>
-        <div class="demo-stat" style="min-width:195px;max-width:210px;text-align:left;padding:8px 10px">
-          <div class="demo-stat-l" style="margin-bottom:6px;font-size:9px">⚠️ Novedades pendientes (2)</div>
-          <div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-top:1px solid #30363d;font-size:10px">
-            <span class="demo-pill demo-g-alta" style="font-size:9px;padding:1px 6px">Alta</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6edf3">Ruido suspensión</span><span style="color:#7d8590">4d</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-top:1px solid #30363d;font-size:10px">
-            <span class="demo-pill demo-g-media" style="font-size:9px;padding:1px 6px">Media</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e6edf3">Pierde aceite</span><span style="color:#7d8590">12d</span>
-          </div>
-        </div>
-      </div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">⛽ Últimas cargas</div><span class="demo-btn demo-btn-p">+ Nueva carga</span></div>
-        <div class="demo-card-body" style="padding:0">
-          <table class="demo-table">
-            <thead><tr><th>Fecha</th><th>Km</th><th>Combustible</th><th>Litros</th><th>Total</th><th>Lleno</th><th>Rendim.</th></tr></thead>
-            <tbody>
-              <tr><td>21/08/2026</td><td>48.230</td><td>YPF · Super</td><td>32,4 L</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td></tr>
-              <tr><td>05/08/2026</td><td>47.680</td><td>Shell · Premium</td><td>29,9 L</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">🔧️ Próximos mantenimientos</div></div>
-        <div class="demo-card-body" style="padding:0">
-          <table class="demo-table">
-            <thead><tr><th>Servicio</th><th>Próximo km</th><th>Faltan</th></tr></thead>
-            <tbody>
-              <tr><td>Cambio de aceite</td><td>50.000</td><td style="color:#d29922">1.770 km</td></tr>
-              <tr><td>Correa de distribución</td><td>90.000</td><td>41.770 km</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">🛞 Estado de componentes</div></div>
-        <div class="demo-card-body">
-          <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Neumáticos — Bridgestone 195/65</span><span style="color:#8b949e">74%</span></div>
-            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
-            <div style="font-size:11px;color:#7d8590">Próximo cambio estimado: ~50.000 km</div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>Batería</span><span style="color:#8b949e">93%</span></div>
-            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
-            <div style="font-size:11px;color:#7d8590">Faltan 2 semanas (~05/09/2026)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <h2>⛽ Combustible</h2>
-    <div class="screenshot-frame">
-      <div class="screenshot-label">Ejemplo con datos de muestra</div>
-      <p style="font-size:11px;color:#7d8590;margin-bottom:10px">El botón "+ Nueva carga" está arriba de todo de la pantalla (no dentro de la tarjeta).</p>
-      <div class="demo-stats" style="margin-bottom:10px">
-        <div class="demo-stat"><div class="demo-stat-n">12,1</div><div class="demo-stat-l">Prom. km/L (3m)</div><div class="demo-stat-extra" style="font-weight:400;font-size:10px">8,3 L/100km</div></div>
-        <div class="demo-stat"><div class="demo-stat-n">47</div><div class="demo-stat-l">Cargas registradas</div></div>
-      </div>
-      <div class="demo-card">
-        <div class="demo-card-body" style="padding:0">
-          <table class="demo-table">
-            <thead><tr><th>Fecha</th><th>Km</th><th>Marca</th><th>Tipo</th><th>Litros</th><th>$/L</th><th>Total</th><th>Lleno</th><th>Rendim.</th><th>📍 Estación</th><th></th></tr></thead>
-            <tbody>
-              <tr><td>21/08/2026</td><td>48.230</td><td>YPF</td><td>Super</td><td>32,4 L</td><td>$2.000</td><td>$64.800</td><td>✅</td><td>12,4 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Ruta+9+Maldonado" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Ruta 9, Maldonado</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>05/08/2026</td><td>47.680</td><td>Shell</td><td>Premium</td><td>29,9 L</td><td>$2.048</td><td>$61.200</td><td>✅</td><td>11,9 km/L</td><td><a href="https://www.google.com/maps/search/?api=1&query=Shell+Av.+Espa%C3%B1a" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 Shell Av. España</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>22/07/2026</td><td>47.030</td><td>YPF</td><td>Super</td><td>18,2 L</td><td>$1.980</td><td>$36.040</td><td>—</td><td>—</td><td><a href="https://www.google.com/maps/search/?api=1&query=YPF+Los+Aromos" target="_blank" rel="noopener" style="color:#8b949e;text-decoration:none" title="Tocá para probar — en la app real abre Google Maps en esa ubicación">📍 YPF Los Aromos</a></td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <h2>🛞 Componentes</h2>
-    <div class="screenshot-frame">
-      <div class="screenshot-label">Ejemplo con datos de muestra</div>
-      <p style="font-size:11px;color:#7d8590;margin-bottom:10px">El botón "+ Nuevo componente" está arriba de todo de la pantalla (no dentro de la tarjeta).</p>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">🛞 Componentes activos</div></div>
-        <div class="demo-card-body">
-          <div class="demo-comp" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px">
-            <div class="demo-comp-row">
-              <div class="demo-comp-title">Neumáticos — Bridgestone 195/65</div>
-              <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
-            </div>
-            <div class="demo-comp-sub">Instalado: 42.000 km · 12/03/2026 ✅</div>
-            <div class="vprog"><div class="vprog-bar vprog-warn" style="width:74%" title="74% de vida útil — 6.230 km recorridos"></div></div>
-            <div class="demo-comp-detail">6.230 km recorridos (74% por km)</div>
-            <div class="demo-comp-detail">Próx. cambio: ~50.000 km — limita por km</div>
-          </div>
-          <div class="demo-comp" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;margin-top:10px">
-            <div class="demo-comp-row">
-              <div class="demo-comp-title">Batería</div>
-              <div><span class="demo-btn demo-btn-e">✎ Editar</span> <span class="demo-btn demo-btn-g">🔄 Reemplazar</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></div>
-            </div>
-            <div class="demo-comp-sub">Instalado: 30.500 km · 02/01/2025 ✅</div>
-            <div class="vprog"><div class="vprog-bar vprog-crit" style="width:93%" title="93% de vida útil — 33,5 meses transcurridos"></div></div>
-            <div class="demo-comp-detail">33,5 meses transcurridos (93% por tiempo)</div>
-            <div class="demo-comp-detail">Próx. cambio: faltan 2 semanas (~05/09/2026) — limita por tiempo</div>
-          </div>
-        </div>
-      </div>
-      <div class="info">Verde = tranquilo, ámbar = atento (≥70%), rojo = urgente (≥90%) — mismos colores que las alertas del Dashboard.</div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">📋 Historial de reemplazos</div></div>
-        <div class="demo-card-body" style="padding:0">
-          <table class="demo-table">
-            <thead><tr><th>Tipo</th><th>Instalado</th><th>Reemplazado</th><th>Vida útil real</th><th>Estimada</th><th>Costo</th><th>$/km</th></tr></thead>
-            <tbody>
-              <tr><td>Neumáticos — Michelin 195/65</td><td>2.100</td><td>42.000</td><td>39.900</td><td>40.000</td><td>$380.000</td><td>$9,52</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <h2>📈 Reportes</h2>
-    <div class="screenshot-frame">
-      <div class="screenshot-label">Ejemplo con datos de muestra</div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">📈 Km y gasto por mes</div></div>
-        <div class="demo-card-body">
-          <div class="barchart-legend">
-            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#3b82f6"></span>Km recorridos</span>
-            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:#7c5cff"></span>Gasto total</span>
-            <span class="barchart-legend-item"><span class="barchart-legend-dot" style="background:repeating-linear-gradient(45deg,#8b949e,#8b949e 3px,#30363d 3px,#30363d 6px)"></span>Mes en curso</span>
-          </div>
-          <div class="barchart-combo">
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:62%" title="1.240 km"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:48%" title="$185.000"></div>
-            </div><div class="barchart-combo-label">mar</div></div>
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:78%" title="1.560 km"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:55%" title="$210.000"></div>
-            </div><div class="barchart-combo-label">abr</div></div>
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:70%" title="1.400 km"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:100%" title="$380.000"></div>
-            </div><div class="barchart-combo-label">may</div></div>
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:85%" title="1.700 km"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:50%" title="$195.000"></div>
-            </div><div class="barchart-combo-label">jun</div></div>
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km" style="height:100%" title="2.010 km"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto" style="height:62%" title="$230.000"></div>
-            </div><div class="barchart-combo-label">jul</div></div>
-            <div class="barchart-combo-col"><div class="barchart-combo-bars">
-              <div class="barchart-combo-bar barchart-combo-bar-km en-curso" style="height:35%" title="700 km (parcial)"></div>
-              <div class="barchart-combo-bar barchart-combo-bar-gasto en-curso" style="height:30%" title="$112.000 (parcial)"></div>
-            </div><div class="barchart-combo-label en-curso">ago ●</div></div>
-          </div>
-          <p style="font-size:10px;color:#6e7681;margin-top:8px;text-align:center">El mes en curso es un dato parcial: la barra se va a ir agrandando a medida que cargues combustible y gastos.</p>
-        </div>
-      </div>
-      <div class="demo-card">
-        <div class="demo-ch"><div class="demo-ct">🔢 Lecturas de kilometraje mensual</div><span class="demo-btn demo-btn-p">+ Registrar</span></div>
-        <div class="demo-card-body">
-          <p style="font-size:12px;color:#8b949e;margin-bottom:12px">Registrá el km el día 1 de cada mes (o cualquier día cercano) y acá vas a ver cuánto recorriste cada mes, independiente de las cargas de combustible.</p>
-          <div style="overflow-x:auto;margin-bottom:16px">
-            <div style="position:relative;min-width:200px">
-              <svg viewBox="0 0 200 120" style="width:100%;min-width:200px;height:120px;display:block">
-                <polyline points="22.0,14.0 178.0,23.1" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-                <circle cx="22.0" cy="14.0" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>jul 26: 1.310 km</title></circle><circle cx="178.0" cy="23.1" r="3.5" fill="#3b82f6" stroke="#161b22" stroke-width="1.5"><title>ago 26: 1.180 km</title></circle>
-              </svg>
-              <div style="position:relative;width:200px;height:14px">
-                <span style="position:absolute;left:22.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">jul 26</span><span style="position:absolute;left:178.0px;transform:translateX(-50%);font-size:9px;color:#7d8590;white-space:nowrap">ago 26</span>
-              </div>
-            </div>
-          </div>
-          <table class="demo-table">
-            <thead><tr><th>Mes</th><th>Fecha</th><th>Km</th><th>Km del período</th><th></th></tr></thead>
-            <tbody>
-              <tr><td>ago 26</td><td>01/08/2026</td><td>46.980</td><td>1.180</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>jul 26</td><td>01/07/2026</td><td>45.800</td><td>1.310</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-              <tr><td>jun 26</td><td>02/06/2026</td><td>44.490</td><td>—</td><td><span class="demo-btn demo-btn-e">✎</span> <span class="demo-btn" style="background:#4a1a1a;color:#f85149;border-color:#6a2d2d">✕</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <h2>📱 Carga rápida (celular)</h2>
-    <p style="font-size:12px;color:#64748b;margin-bottom:6px">🖱️ Los campos <b>Marca</b>, <b>Tipo</b>, <b>Litros</b>, <b>$/Litro</b>, <b>Total pagado</b> y el switch de tanque lleno de este ejemplo funcionan de verdad — probalos. Litros/$/Litro/Total se calculan solos entre sí (igual que en la app: con 2 de los 3 completos, calcula el tercero). No guardan nada, es solo para que veas cómo se comporta el formulario.</p>
-    <div class="screenshot-frame" style="display:flex;justify-content:center;background:transparent;border:none;box-shadow:none;padding:0">
-      <div style="width:100%">
-        <div class="screenshot-label" style="justify-content:center;color:#475569">Ejemplo con datos de muestra</div>
-        <div class="demo-phone">
-          <div class="demo-phone-notch"></div>
-          <div class="demo-vr-top">
-            <div class="demo-vr-title">⛽ Control Vehicular</div>
-            <div class="demo-vr-sub">Carga rápida de combustible</div>
-            <div class="demo-vr-vsel" style="background:transparent;border:none;padding-left:0;color:#8b949e">🚗 AB123CD</div>
-          </div>
-          <div class="demo-vr-body">
-            <div class="demo-vr-gps">📍 YPF Ruta 9, Maldonado</div>
-            <div class="demo-vr-fg"><label>Kilometraje actual</label><div class="demo-vr-input">48.230</div></div>
-            <div class="demo-vr-row">
-              <div class="demo-vr-fg"><label>Marca</label><select class="demo-vr-select">
-                <option>Axion</option><option selected>YPF</option><option>Shell</option><option>Otras</option>
-              </select></div>
-              <div class="demo-vr-fg"><label>Tipo</label><select class="demo-vr-select">
-                <option selected>Super</option><option>Premium</option>
-              </select></div>
-            </div>
-            <div class="demo-vr-row">
-              <div class="demo-vr-fg"><label>Litros</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-litros" value="32.4" oninput="demoRecalcularCarga('litros')" style="width:100%;font-family:inherit"></div>
-              <div class="demo-vr-fg"><label>$ / Litro</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-costo" value="2000" oninput="demoRecalcularCarga('costo')" style="width:100%;font-family:inherit"></div>
-            </div>
-            <div class="demo-vr-fg"><label>Total pagado</label><input type="number" step="0.01" class="demo-vr-input" id="demo-vr-totalpagado" value="64800" oninput="demoRecalcularCarga('total')" style="width:100%;font-family:inherit"></div>
-            <div class="demo-vr-switch"><label>⛽ ¿Tanque lleno?</label><div class="demo-vr-switch-dot" onclick="this.classList.toggle('off')" title="Tocá para probar"></div></div>
-            <div class="demo-vr-btn-main">Guardar carga</div>
-          </div>
-          <div class="demo-vr-footer"><div>🔄 Sincronizar</div><div>🚪 Guardar y salir</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="info">La ubicación (📍) se completa sola en segundo plano apenas abrís el formulario — para cuando terminás de cargar el resto, normalmente ya está lista (ver <a href="#combustible">Estación / ubicación</a>).</div>
-  </div>
-
-
   <div class="section" id="changelog">
     <div class="section-header">
       <div class="section-icon">📋</div>
@@ -1112,8 +1201,11 @@
       </div>
     </div>
     <details class="changelog-toggle">
-      <summary>Ver las 99 versiones</summary>
+      <summary>Ver las 102 versiones</summary>
       <div class="changelog-list">
+        <div class="changelog-row"><span class="cl-ver">v1.08</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Agregar pantalla de muestra del modal "Próximos vencimientos" (con el aviso de novedades pendientes incluido) — faltaba en las pantallas de muestra</span></div>
+        <div class="changelog-row"><span class="cl-ver">v1.07</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Agregar pantalla de muestra de Gastos (Costo por km con desglose, Gastos fijos, Gastos variables) — faltaba en las pantallas de muestra</span></div>
+        <div class="changelog-row"><span class="cl-ver">v1.06</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Insertar cada pantalla de muestra directo dentro de su sección correspondiente (Dashboard, Vencimientos, Combustible, Componentes, Gastos, Reportes, Carga rápida) en vez de agruparlas todas al final — se ve la ilustración justo donde se explica cada cosa</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.05</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Cambiar el gráfico de km recorridos por mes (Lecturas de kilometraje) de barras a líneas — SVG hecho a mano, sin librerías</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.04</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Gráfico con los km recorridos por mes (últimos 12 meses) en la card de Lecturas de kilometraje, calculado directo de las lecturas — independiente del gráfico "Km y gasto por mes"</span></div>
         <div class="changelog-row"><span class="cl-ver">v1.03</span><span class="cl-date">2026-08-22</span><span class="cl-desc">Quitar el fondo oscuro del marco que envuelve el mockup del celular (no la pantalla del celu en sí, que sigue oscura como la app real) — queda flotando sobre el fondo de la página</span></div>
