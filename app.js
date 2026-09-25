@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v1.13';
+const VERSION = 'v1.14';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -3454,15 +3454,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if(typeof DriveSync !== 'undefined'){
-    DriveSync.init(() => {
-      console.log('Drive listo');
-      cvActualizarBotonDriveTopbar();
-      // Auto-sync al abrir en PC: solo si ya estaba conectado (no dispara
-      // el popup de login solo) y en silencio (sin alert de confirmación).
-      if(!esMobile() && DriveSync.conectado){
-        cvSincronizarDrive(true);
-      }
-    });
+    DriveSync.init(() => { console.log('Drive listo'); cvActualizarBotonDriveTopbar(); });
     cvActualizarBotonDriveTopbar();
     if(DriveSync.onToken){
       DriveSync.onToken(() => {
