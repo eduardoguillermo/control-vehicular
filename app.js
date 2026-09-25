@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v1.12';
+const VERSION = 'v1.13';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -3454,7 +3454,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if(typeof DriveSync !== 'undefined'){
-    DriveSync.init(() => { console.log('Drive listo'); cvActualizarBotonDriveTopbar(); });
+    DriveSync.init(() => {
+      console.log('Drive listo');
+      cvActualizarBotonDriveTopbar();
+      // Auto-sync al abrir en PC: solo si ya estaba conectado (no dispara
+      // el popup de login solo) y en silencio (sin alert de confirmación).
+      if(!esMobile() && DriveSync.conectado){
+        cvSincronizarDrive(true);
+      }
+    });
     cvActualizarBotonDriveTopbar();
     if(DriveSync.onToken){
       DriveSync.onToken(() => {
@@ -3678,7 +3686,7 @@ function cvCapturarUbicacionMobile(){
 // afuera (común en estaciones grandes, con varias islas), Nominatim devuelve
 // la calle o un comercio vecino en vez de la estación. Por eso, en paralelo,
 // se consulta Overpass API buscando específicamente estaciones de servicio
-// (amenity=fuel) en un radio de 100m — si aparece alguna, su nombre tiene
+// (amenity=fuel) en un área de 100m de diámetro (radio 50m) — si aparece alguna, su nombre tiene
 // prioridad sobre lo que diga Nominatim.
 function cvReverseGeocodeMobile(ubic){
   const ctrl = new AbortController();
@@ -3736,7 +3744,7 @@ function cvReverseGeocodeMobile(ubic){
 function cvBuscarEstacionCercana(lat, lng){
   const ctrl = new AbortController();
   const timeoutId = setTimeout(()=>ctrl.abort(), 8000);
-  const query = `[out:json][timeout:8];(node(around:100,${lat},${lng})[amenity=fuel];way(around:100,${lat},${lng})[amenity=fuel];);out center;`;
+  const query = `[out:json][timeout:8];(node(around:50,${lat},${lng})[amenity=fuel];way(around:50,${lat},${lng})[amenity=fuel];);out center;`;
   const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
   return fetch(url, { signal: ctrl.signal })
     .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
