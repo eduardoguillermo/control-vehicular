@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v1.15';
+const VERSION = 'v1.16';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -775,8 +775,9 @@ function registrarCarga(datos){
 
   // Cruce con mantenimientos y componentes al actualizar el km
   const alertasMant = verificarMantenimientos(vehiculoId, km);
+  const alertasTiempo = verificarMantenimientosPorTiempo(vehiculoId);
   const alertasComp = verificarComponentes(vehiculoId, km);
-  return { carga: nuevaCarga, alertas: [...alertasMant, ...alertasComp] };
+  return { carga: nuevaCarga, alertas: [...alertasMant, ...alertasTiempo, ...alertasComp] };
 }
 
 // Edita una carga existente y recalcula toda la cadena de rendimientos del
@@ -807,8 +808,9 @@ function editarCarga(uuid, datos){
   recalcularRendimientosVehiculo(c.vehiculoId);
   save();
   const alertasMant = verificarMantenimientos(c.vehiculoId, kmActualVehiculo(c.vehiculoId));
+  const alertasTiempo = verificarMantenimientosPorTiempo(c.vehiculoId);
   const alertasComp = verificarComponentes(c.vehiculoId, kmActualVehiculo(c.vehiculoId));
-  return { carga: c, alertas: [...alertasMant, ...alertasComp] };
+  return { carga: c, alertas: [...alertasMant, ...alertasTiempo, ...alertasComp] };
 }
 
 function eliminarCarga(uuid){
