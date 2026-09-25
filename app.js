@@ -2,7 +2,7 @@
 
 // ── CONSTANTES ────────────────────────────────────────────────────────────────
 const SKEY = 'control-vehicular';
-const VERSION = 'v1.14';
+const VERSION = 'v1.15';
 const DEV_MODE = false; // en el build de DEV esto se reemplaza por true
 
 const TIPOS_GASTO_FIJO = ['Seguro','Patente/Impuesto','Cochera','Alarma/Monitoreo','Otro'];
@@ -865,7 +865,9 @@ function crearMantenimientoProgramado(datos){
     vehiculoId: datos.vehiculoId,
     nombre_servicio: datos.nombre_servicio,
     notas: datos.notas || '',
-    intervalo_km: Number(datos.intervalo_km)
+    intervalo_km: Number(datos.intervalo_km)||0,
+    intervalo_dias: Number(datos.intervalo_dias)||0,
+    fecha_creacion: hoyISO()
   });
   DB.mantenimientosProgramados.push(m);
   save();
@@ -876,7 +878,8 @@ function editarMantenimientoProgramado(uuid, datos){
   if(!m) return;
   Object.assign(m, {
     nombre_servicio: datos.nombre_servicio, notas: datos.notas||'',
-    intervalo_km: Number(datos.intervalo_km)
+    intervalo_km: Number(datos.intervalo_km)||0,
+    intervalo_dias: Number(datos.intervalo_dias)||0
   });
   tocar(m); save();
 }
@@ -899,13 +902,26 @@ function eliminarMantenimientoProgramado(uuid){
 function ultimoRealizado(mantenimientoProgramadoId){
   const realizados = DB.mantenimientosRealizados
     .filter(m=>!m._deleted && m.mantenimientoProgramadoId===mantenimientoProgramadoId)
-    .sort((a,b)=>a.kilometraje_realizado - b.kilometraje_realizado);
+    .sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
   return realizados.length ? realizados[realizados.length-1] : null;
 }
 
 function proximoKmMantenimiento(prog){
+  if(!prog.intervalo_km) return null;
   const ultimo = ultimoRealizado(prog.uuid);
   return ultimo ? ultimo.kilometraje_realizado + prog.intervalo_km : prog.intervalo_km;
+}
+// Equivalente por tiempo: próxima fecha en que toca hacer la tarea, contando
+// desde la última vez que se realizó (o desde que se creó el mantenimiento
+// programado, si nunca se hizo). Devuelve null si el mantenimiento no tiene
+// intervalo por días configurado (es puramente por km).
+function proximaFechaMantenimiento(prog){
+  if(!prog.intervalo_dias) return null;
+  const ultimo = ultimoRealizado(prog.uuid);
+  const base = ultimo ? ultimo.fecha : (prog.fecha_creacion || hoyISO());
+  const d = new Date(base);
+  d.setDate(d.getDate() + prog.intervalo_dias);
+  return d.toISOString().slice(0,10);
 }
 
 function registrarMantenimientoRealizado(datos){
@@ -1100,7 +1116,7 @@ function verificarMantenimientos(vehiculoId, kmActual){
 
   programados.forEach(prog => {
     const proximoKm = proximoKmMantenimiento(prog);
-    if(kmActual >= proximoKm){
+    if(proximoKm!==null && kmActual >= proximoKm){
       const yaAlertado = DB.alertas.some(a =>
         !a._deleted && a.mantenimientoProgramadoId===prog.uuid && a.proximoKmEsperado===proximoKm && !a.atendida
       );
@@ -1115,6 +1131,40 @@ function verificarMantenimientos(vehiculoId, kmActual){
           fecha: hoyISO(),
           atendida: false,
           mensaje: `🔧️ Toca "${prog.nombre_servicio}" (programado a los ${fmtKm(proximoKm)}, ya llevás ${fmtKm(kmActual)})`
+        });
+        DB.alertas.push(alerta);
+        disparadas.push(alerta);
+      }
+    }
+  });
+  if(disparadas.length) save();
+  return disparadas;
+}
+// Equivalente por tiempo: se ejecuta al abrir la app (no depende de cargar
+// combustible, porque una tarea por tiempo puede vencer sin que se cargue
+// nafta en el medio). Misma lógica de deduplicación que la de km, pero
+// comparando la fecha esperada en vez del km esperado.
+function verificarMantenimientosPorTiempo(vehiculoId){
+  const programados = DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===vehiculoId);
+  const hoy = hoyISO().slice(0,10);
+  const disparadas = [];
+
+  programados.forEach(prog => {
+    const proximaFecha = proximaFechaMantenimiento(prog);
+    if(proximaFecha!==null && hoy >= proximaFecha){
+      const yaAlertado = DB.alertas.some(a =>
+        !a._deleted && a.mantenimientoProgramadoId===prog.uuid && a.proximaFechaEsperada===proximaFecha && !a.atendida
+      );
+      if(!yaAlertado){
+        const alerta = tocar({
+          uuid: cvNuevoUUID(),
+          tipo: 'mantenimiento',
+          vehiculoId,
+          mantenimientoProgramadoId: prog.uuid,
+          proximaFechaEsperada: proximaFecha,
+          fecha: hoyISO(),
+          atendida: false,
+          mensaje: `🔧️ Toca "${prog.nombre_servicio}" (programado para el ${fmtFecha(proximaFecha)})`
         });
         DB.alertas.push(alerta);
         disparadas.push(alerta);
@@ -1626,13 +1676,27 @@ function calcularVencimientos(vehiculoId){
 
   DB.mantenimientosProgramados.filter(p=>!p._deleted && p.vehiculoId===vehiculoId).forEach(p => {
     const proximoKm = proximoKmMantenimiento(p);
-    const faltan = proximoKm - km;
-    if(faltan <= DB.config.umbralKmAvisoVencimiento){
+    const proximaFecha = proximaFechaMantenimiento(p);
+    let faltanKm = null, faltanDias = null;
+    if(proximoKm!==null) faltanKm = proximoKm - km;
+    if(proximaFecha!==null) faltanDias = Math.round((new Date(proximaFecha) - new Date(hoyISO())) / 86400000);
+
+    // El criterio limitante es el que está más cerca de vencer (o ya venció).
+    // Para tareas por tiempo se usa un aviso fijo de 2 semanas antes.
+    const avisaPorKm = faltanKm!==null && faltanKm <= DB.config.umbralKmAvisoVencimiento;
+    const avisaPorDias = faltanDias!==null && faltanDias <= 14;
+
+    if(avisaPorKm || avisaPorDias){
+      // Si tiene los dos criterios, se muestra el que esté más urgente (más vencido/más cerca).
+      const usarDias = avisaPorDias && (!avisaPorKm || (faltanDias/(p.intervalo_dias||1)) < (faltanKm/(p.intervalo_km||1)));
+      const detalle = usarDias
+        ? (faltanDias <= 0 ? `Vencido hace ${Math.abs(faltanDias)} día${Math.abs(faltanDias)===1?'':'s'}` : `Faltan ${faltanDias} día${faltanDias===1?'':'s'}`)
+        : (faltanKm <= 0 ? `Vencido hace ${fmtKm(-faltanKm)}` : `Faltan ${fmtKm(faltanKm)}`);
       items.push({
         tipo: 'mantenimiento', id: p.uuid, nombre: p.nombre_servicio,
-        detalle: faltan <= 0 ? `Vencido hace ${fmtKm(-faltan)}` : `Faltan ${fmtKm(faltan)}`,
-        urgente: faltan <= 0,
-        orden: faltan
+        detalle,
+        urgente: usarDias ? faltanDias <= 0 : faltanKm <= 0,
+        orden: usarDias ? faltanDias : faltanKm
       });
     }
   });
@@ -1893,14 +1957,23 @@ function renderTablaProximosMantenimientos(vehiculoId, km){
   if(!progs.length) return `<div class="empty">No hay mantenimientos programados. <a onclick="goTo('mantenimientos')" style="color:var(--primary-light);cursor:pointer">Crear uno</a></div>`;
   const filas = progs.map(p => {
     const proximoKm = proximoKmMantenimiento(p);
-    const faltan = proximoKm - km;
-    return { p, proximoKm, faltan };
-  }).sort((a,b)=>a.faltan-b.faltan);
-  return `<table><thead><tr><th>Servicio</th><th>Próximo km</th><th>Faltan</th></tr></thead><tbody>
+    const proximaFecha = proximaFechaMantenimiento(p);
+    const faltanKm = proximoKm!==null ? proximoKm - km : null;
+    const faltanDias = proximaFecha!==null ? Math.round((new Date(proximaFecha) - new Date(hoyISO())) / 86400000) : null;
+    // orden: prioriza lo más urgente entre los dos criterios que tenga (normalizado a % del intervalo)
+    const ordenKm = faltanKm!==null ? faltanKm/(p.intervalo_km||1) : Infinity;
+    const ordenDias = faltanDias!==null ? faltanDias/(p.intervalo_dias||1) : Infinity;
+    const orden = Math.min(ordenKm, ordenDias);
+    const vencido = (faltanKm!==null && faltanKm<=0) || (faltanDias!==null && faltanDias<=0);
+    const proximoTxt = [proximoKm!==null?fmtKm(proximoKm):null, proximaFecha!==null?fmtFecha(proximaFecha):null].filter(Boolean).join(' · ');
+    const faltaTxt = vencido ? '¡Toca ahora!' : [faltanKm!==null?fmtKm(faltanKm):null, faltanDias!==null?`${faltanDias}d`:null].filter(Boolean).join(' · ');
+    return { p, proximoTxt, faltaTxt, vencido, orden };
+  }).sort((a,b)=>a.orden-b.orden);
+  return `<table><thead><tr><th>Servicio</th><th>Próximo</th><th>Faltan</th></tr></thead><tbody>
     ${filas.map(f=>`<tr>
       <td>${escHtml(f.p.nombre_servicio)}</td>
-      <td>${fmtKm(f.proximoKm)}</td>
-      <td class="${f.faltan<=0?'red':(f.faltan<1000?'amber':'')}">${f.faltan<=0?'¡Toca ahora!':fmtKm(f.faltan)}</td>
+      <td>${f.proximoTxt}</td>
+      <td class="${f.vencido?'red':(f.orden<0.15?'amber':'')}">${f.faltaTxt}</td>
     </tr>`).join('')}
   </tbody></table>`;
 }
@@ -2201,20 +2274,30 @@ function renderMantenimientos(){
       <div class="ch"><div class="ct">🔧️ Servicios programados</div></div>
       <div class="card-body twrap">
         ${!progs.length ? `<div class="empty">No hay servicios programados todavía.</div>` : `
-        <table><thead><tr><th>Servicio</th><th>Intervalo</th><th>Último realizado</th><th>Próximo km</th><th></th></tr></thead><tbody>
+        <table><thead><tr><th>Servicio</th><th>Intervalo</th><th>Último realizado</th><th>Próximo</th><th></th></tr></thead><tbody>
         ${progs.map(p=>{
           const ultimo = ultimoRealizado(p.uuid);
           const proximoKm = proximoKmMantenimiento(p);
-          const faltan = proximoKm - km;
+          const proximaFecha = proximaFechaMantenimiento(p);
+          const faltanKm = proximoKm!==null ? proximoKm - km : null;
+          const faltanDias = proximaFecha!==null ? Math.round((new Date(proximaFecha) - new Date(hoyISO())) / 86400000) : null;
+          const vencido = (faltanKm!==null && faltanKm<=0) || (faltanDias!==null && faltanDias<=0);
+          const intervaloTxt = [p.intervalo_km ? `cada ${fmtKm(p.intervalo_km)}` : null, p.intervalo_dias ? `cada ${p.intervalo_dias} días` : null].filter(Boolean).join(' o ');
+          const proximoTxt = [proximoKm!==null ? fmtKm(proximoKm) : null, proximaFecha!==null ? fmtFecha(proximaFecha) : null].filter(Boolean).join(' · ');
+          const claseColor = vencido ? 'red' : ((faltanKm!==null && faltanKm<1000) || (faltanDias!==null && faltanDias<=14)) ? 'amber' : '';
+          const faltaTxt = [
+            faltanKm!==null ? (faltanKm<=0 ? `Vencido hace ${fmtKm(-faltanKm)}` : `Faltan ${fmtKm(faltanKm)}`) : null,
+            faltanDias!==null ? (faltanDias<=0 ? `Vencido hace ${Math.abs(faltanDias)}d` : `Faltan ${faltanDias}d`) : null
+          ].filter(Boolean).join(' · ');
           return `<tr>
             <td>${escHtml(p.nombre_servicio)}${p.notas?`<div class="text3" style="font-size:11px">${escHtml(p.notas)}</div>`:''}</td>
-            <td>cada ${fmtKm(p.intervalo_km)}</td>
+            <td>${intervaloTxt||'—'}</td>
             <td>${ultimo ? fmtKm(ultimo.kilometraje_realizado)+' · '+fmtFecha(ultimo.fecha) : '—'}</td>
-            <td class="${faltan<=0?'red':(faltan<1000?'amber':'')}">${fmtKm(proximoKm)} ${faltan<=0?'⚠️':''}</td>
+            <td class="${claseColor}">${proximoTxt} ${vencido?'⚠️':''}</td>
             <td style="white-space:nowrap">
-              ${faltan<=0
+              ${vencido
                 ? `<button class="btn btn-sm btn-g" onclick="modalRegistrarMantenimiento('${p.uuid}')">✓ Registrar</button>`
-                : `<span class="text3" style="font-size:11px">Faltan ${fmtKm(faltan)}</span>`}
+                : `<span class="text3" style="font-size:11px">${faltaTxt}</span>`}
               <button class="btn btn-sm btn-e" onclick="modalEditarMantenimientoProgramado('${p.uuid}')">✎</button>
               <button class="btn btn-sm btn-d" onclick="eliminarMantenimientoProgramado('${p.uuid}')">✕</button>
             </td>
@@ -2259,7 +2342,11 @@ function modalNuevoMantenimientoProgramado(){
   if(esMobile()){ alert('⚠️ Los mantenimientos y novedades se cargan desde la PC. En el celular los cambios no se preservan (Drive los sincroniza como solo lectura), para evitar perder el historial si el cel tiene datos viejos.'); return; }
   abrirModal('🔧️ Programar servicio', `
     <div class="fg"><label>Nombre del servicio</label><input type="text" id="f-nombre" placeholder="Ej: Cambio de aceite" autocomplete="off" value=""></div>
-    <div class="fg"><label>Intervalo (cada cuántos km)</label><input type="number" inputmode="numeric" id="f-intervalo" placeholder="Ej: 10000" autocomplete="off" value=""></div>
+    <div class="fgrid">
+      <div class="fg"><label>Intervalo (km)</label><input type="number" inputmode="numeric" id="f-intervalo" placeholder="Ej: 10000" autocomplete="off" value=""></div>
+      <div class="fg"><label>Intervalo (días)</label><input type="number" inputmode="numeric" id="f-intervalo-dias" placeholder="Ej: 90" autocomplete="off" value=""></div>
+    </div>
+    <div class="tip" style="font-size:12px;margin:4px 0 8px;">💡 Completá al menos uno de los dos. Si cargás ambos, se avisa lo que ocurra primero (ej. "cada 10.000km o 6 meses, lo que pase antes"). Si es una tarea sin relación al kilometraje (ej. "revisar presión de neumáticos"), dejá el intervalo en km vacío y usá solo días.</div>
     <div class="fg"><label>Notas</label><textarea id="f-notas" placeholder="Opcional" autocomplete="off"></textarea></div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
@@ -2268,17 +2355,18 @@ function modalNuevoMantenimientoProgramado(){
   setTimeout(()=>{
     // Por si el navegador igual intenta autocompletar con datos de otro
     // servicio ya cargado (los ids se reutilizan entre modales de la app).
-    ['f-nombre','f-intervalo','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['f-nombre','f-intervalo','f-intervalo-dias','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('f-nombre').focus();
   }, 60);
 }
 function guardarNuevoMantenimientoProgramado(){
   const v = vehiculoActivo();
   const nombre_servicio = document.getElementById('f-nombre').value.trim();
-  const intervalo_km = Number(document.getElementById('f-intervalo').value);
+  const intervalo_km = Number(document.getElementById('f-intervalo').value)||0;
+  const intervalo_dias = Number(document.getElementById('f-intervalo-dias').value)||0;
   const notas = document.getElementById('f-notas').value.trim();
-  if(!nombre_servicio || !intervalo_km){ alert('Completá nombre e intervalo.'); return; }
-  crearMantenimientoProgramado({ vehiculoId: v.uuid, nombre_servicio, intervalo_km, notas });
+  if(!nombre_servicio || (!intervalo_km && !intervalo_dias)){ alert('Completá el nombre y al menos un intervalo (km o días).'); return; }
+  crearMantenimientoProgramado({ vehiculoId: v.uuid, nombre_servicio, intervalo_km, intervalo_dias, notas });
   cerrarModal(); goTo('mantenimientos');
 }
 function modalEditarMantenimientoProgramado(uuid){
@@ -2287,11 +2375,14 @@ function modalEditarMantenimientoProgramado(uuid){
   if(!p) return;
   abrirModal('✎ Editar servicio', `
     <div class="fg"><label>Nombre del servicio</label><input type="text" id="f-nombre" value="${escHtml(p.nombre_servicio)}"></div>
-    <div class="fg"><label>Intervalo (km)</label><input type="number" inputmode="numeric" id="f-intervalo" value="${p.intervalo_km}"></div>
+    <div class="fgrid">
+      <div class="fg"><label>Intervalo (km)</label><input type="number" inputmode="numeric" id="f-intervalo" value="${p.intervalo_km||''}"></div>
+      <div class="fg"><label>Intervalo (días)</label><input type="number" inputmode="numeric" id="f-intervalo-dias" value="${p.intervalo_dias||''}"></div>
+    </div>
     <div class="fg"><label>Notas</label><textarea id="f-notas">${escHtml(p.notas)}</textarea></div>
   `, `
     <button class="btn" onclick="cerrarModal()">Cancelar</button>
-    <button class="btn btn-p" onclick="editarMantenimientoProgramado('${uuid}', {nombre_servicio:document.getElementById('f-nombre').value.trim(), intervalo_km:document.getElementById('f-intervalo').value, notas:document.getElementById('f-notas').value.trim()}); cerrarModal(); goTo('mantenimientos');">Guardar</button>
+    <button class="btn btn-p" onclick="editarMantenimientoProgramado('${uuid}', {nombre_servicio:document.getElementById('f-nombre').value.trim(), intervalo_km:document.getElementById('f-intervalo').value, intervalo_dias:document.getElementById('f-intervalo-dias').value, notas:document.getElementById('f-notas').value.trim()}); cerrarModal(); goTo('mantenimientos');">Guardar</button>
   `);
 }
 function modalRegistrarMantenimiento(mantenimientoProgramadoId){
@@ -3450,6 +3541,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarSplash();
     document.querySelector('.main').style.display = 'flex';
     goTo('dashboard');
+    vehiculosActivos().forEach(v => verificarMantenimientosPorTiempo(v.uuid));
     setTimeout(mostrarModalVencimientos, 800);
   }
 
